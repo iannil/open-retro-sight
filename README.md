@@ -1,21 +1,162 @@
 # Open-RetroSight
 
-> 非侵入式工业边缘AI网关 - 给老机器装上"数字眼睛"
+> Non-invasive Industrial Edge AI Gateway - Give old machines "digital eyes"
 
-## 简介
+[English](#english) | [中文](#中文)
+
+---
+
+## English
+
+### Introduction
+
+Open-RetroSight is a non-invasive industrial edge AI gateway software that digitizes data from traditional "dumb devices" using computer vision technology.
+
+**No disassembly, no downtime, no rewiring** — Achieve digital transformation of legacy equipment with just a few hundred dollars and minutes of deployment.
+
+### Core Capabilities
+
+- **Seven-segment / LCD Display Recognition** - Read temperature, pressure, counters, and other numeric displays
+- **Analog Gauge Reading** - Map pointer angles to numerical values
+- **Status Indicator Light Detection** - Andon light recognition for OEE calculation
+- **Switch / Knob Position Detection** - Identify gear and toggle states
+
+### Quick Start
+
+```bash
+# Clone the project
+git clone https://github.com/open-retrosight/open-retrosight.git
+cd open-retrosight
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Or install via pip
+pip install -e .
+```
+
+### Documentation
+
+For detailed documentation, see [docs/](docs/index.md):
+
+- [Introduction](docs/getting-started/introduction.md) - Background, value proposition, use cases
+- [Architecture](docs/architecture/overview.md) - System design and tech stack
+- [Use Cases](docs/use-cases/) - Recognition solutions for various devices
+- [Roadmap](docs/roadmap/) - Vision, MVP features, commercialization
+
+### Hardware Requirements
+
+- Raspberry Pi Zero 2W / Orange Pi + USB Camera
+- Or retired Android phone
+- Or ESP32-CAM + Edge Server
+
+### Tech Stack
+
+`Python` `OpenCV` `PaddleOCR` `YOLOv8` `MQTT` `Modbus TCP` `Streamlit`
+
+### Project Status
+
+Current Stage: **Development - Phase 3 Complete**
+
+- [x] Product planning and design
+- [x] Documentation system established
+- [x] Project structure initialized
+- [x] Phase 1: Core capabilities (video stream, OCR, MQTT, Web UI)
+- [x] Phase 2: Key features (pointer recognition, perspective correction, Modbus, offline buffering)
+- [x] Phase 3: Extended features (indicator lights, switch recognition, image enhancement)
+
+#### Phase 1 Implemented Features
+
+- **Video Stream Capture** (`src/retrosight/capture/camera.py`)
+  - USB/CSI/RTSP camera support
+  - Multi-threaded frame buffering
+
+- **Digital OCR Recognition** (`src/retrosight/recognition/ocr.py`)
+  - Seven-segment display recognition (PaddleOCR)
+  - Image preprocessing optimization
+
+- **Data Smoothing Filters** (`src/retrosight/preprocessing/filter.py`)
+  - Kalman filter, moving average, exponential smoothing
+  - Outlier filtering
+
+- **MQTT Data Publishing** (`src/retrosight/output/mqtt.py`)
+  - Auto-reconnect, offline caching
+  - Structured JSON data
+
+- **Web Configuration Interface** (`src/retrosight/ui/app.py`)
+  - Streamlit real-time preview
+  - ROI region configuration
+
+#### Phase 2 Implemented Features
+
+- **Perspective Transform Correction** (`src/retrosight/preprocessing/transform.py`)
+  - Four-point perspective transform
+  - Image registration (vibration resistant)
+  - Lens distortion correction
+
+- **Pointer Recognition Algorithm** (`src/retrosight/recognition/pointer.py`)
+  - Hough line transform for pointer detection
+  - Automatic dial center detection
+  - Angle to value mapping
+
+- **Modbus TCP Output** (`src/retrosight/output/modbus.py`)
+  - Modbus TCP Server (PLC emulation)
+  - Multiple data type support (INT16/FLOAT32, etc.)
+  - Automatic register allocation
+
+- **Offline Buffer & Retry** (`src/retrosight/output/buffer.py`)
+  - SQLite persistent storage
+  - Priority queue
+  - Auto-retry and expiration cleanup
+
+#### Phase 3 Implemented Features
+
+- **Indicator Light Recognition** (`src/retrosight/recognition/light.py`)
+  - HSV color detection (red/yellow/green/blue/white)
+  - Andon tower light status monitoring
+  - Blink detection and frequency estimation
+  - OEE availability calculation
+
+- **Switch / Knob Recognition** (`src/retrosight/recognition/switch.py`)
+  - Toggle switch ON/OFF detection
+  - Rotary knob position recognition (multi-position support)
+  - Push button / slide switch states
+  - Template matching and position detection
+
+- **Image Enhancement** (`src/retrosight/preprocessing/enhancement.py`)
+  - Adaptive contrast enhancement (CLAHE)
+  - Glare removal (inpainting)
+  - Multi-frame fusion denoising
+  - Low-light enhancement
+
+### License
+
+MIT License
+
+### Related Links
+
+- [Documentation Center](docs/index.md)
+- [Product Vision](docs/roadmap/vision.md)
+- [Technical Challenges](docs/roadmap/challenges.md)
+
+---
+
+## 中文
+
+### 简介
 
 Open-RetroSight 是一款非侵入式的工业边缘AI网关软件，通过计算机视觉技术将传统"哑设备"的数据数字化。
 
 **不拆机、不停产、不改线** —— 用几百元成本，几分钟部署，实现老旧设备的数字化改造。
 
-## 核心能力
+### 核心能力
 
 - **七段数码管/LCD屏幕识别** - 读取温度、压力、计数等数字
 - **指针式仪表读取** - 通过指针角度检测映射为数值
 - **状态指示灯识别** - Andon灯识别，计算OEE
 - **开关/旋钮位置检测** - 识别档位状态
 
-## 快速开始
+### 快速开始
 
 ```bash
 # 克隆项目
@@ -29,7 +170,7 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-## 文档
+### 文档
 
 详细文档请查看 [docs/](docs/index.md)：
 
@@ -38,17 +179,17 @@ pip install -e .
 - [应用场景](docs/use-cases/) - 各类设备的识别方案
 - [产品规划](docs/roadmap/) - 愿景、MVP功能、商业化
 
-## 硬件要求
+### 硬件要求
 
 - Raspberry Pi Zero 2W / 香橙派 + USB摄像头
 - 或 退役Android手机
 - 或 ESP32-CAM + 边缘服务器
 
-## 技术栈
+### 技术栈
 
 `Python` `OpenCV` `PaddleOCR` `YOLOv8` `MQTT` `Modbus TCP` `Streamlit`
 
-## 项目状态
+### 项目状态
 
 当前阶段：**开发中 - Phase 3 完成**
 
@@ -59,7 +200,7 @@ pip install -e .
 - [x] Phase 2: 核心功能（指针识别、透视校正、Modbus、断网续传）
 - [x] Phase 3: 扩展功能（指示灯、开关识别、图像增强）
 
-### Phase 1 已实现功能
+#### Phase 1 已实现功能
 
 - **视频流采集** (`src/retrosight/capture/camera.py`)
   - USB/CSI/RTSP 摄像头支持
@@ -81,7 +222,7 @@ pip install -e .
   - Streamlit 实时预览
   - ROI 区域配置
 
-### Phase 2 已实现功能
+#### Phase 2 已实现功能
 
 - **透视变换校正** (`src/retrosight/preprocessing/transform.py`)
   - 四点透视变换
@@ -103,7 +244,7 @@ pip install -e .
   - 优先级队列
   - 自动重试与过期清理
 
-### Phase 3 已实现功能
+#### Phase 3 已实现功能
 
 - **指示灯识别** (`src/retrosight/recognition/light.py`)
   - HSV 颜色检测（红/黄/绿/蓝/白）
@@ -123,11 +264,11 @@ pip install -e .
   - 多帧融合降噪
   - 低光照增强
 
-## 许可证
+### 许可证
 
 MIT License
 
-## 相关链接
+### 相关链接
 
 - [文档中心](docs/index.md)
 - [产品愿景](docs/roadmap/vision.md)
