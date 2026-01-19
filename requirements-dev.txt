@@ -1,0 +1,17 @@
+# Open-RetroSight 开发依赖
+# 安装: pip install -r requirements-dev.txt
+
+# 包含生产依赖
+-r requirements.txt
+
+# 测试
+pytest>=7.0.0,<8.0.0
+pytest-cov>=4.0.0,<5.0.0
+pytest-asyncio>=0.21.0,<1.0.0
+
+# 代码质量
+black>=23.0.0,<25.0.0
+ruff>=0.1.0,<1.0.0
+
+# 类型检查 (可选)
+# mypy>=1.0.0,<2.0.0
