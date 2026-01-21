@@ -1,11 +1,11 @@
-# Open-RetroSight
+# Open-Retro-Sight
 
 > 非侵入式工业边缘AI网关 - 给老机器装上"数字眼睛"
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
-[English](README_EN.md)
+[English](README.md)
 
 ## 简介
 
