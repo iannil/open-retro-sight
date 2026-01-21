@@ -55,7 +55,9 @@ For detailed documentation, see [docs/](docs/index.md):
 
 ## Project Status
 
-Current Stage: **Development - Phase 3 Complete**
+Current Stage: **MVP v0.1.0 Complete**
+
+### Completed Milestones
 
 - [x] Product planning and design
 - [x] Documentation system established
@@ -63,6 +65,28 @@ Current Stage: **Development - Phase 3 Complete**
 - [x] Phase 1: Core capabilities (video stream, OCR, MQTT, Web UI)
 - [x] Phase 2: Key features (pointer recognition, perspective correction, Modbus, offline buffering)
 - [x] Phase 3: Extended features (indicator lights, switch recognition, image enhancement)
+
+### Roadmap
+
+| Phase | Focus | Status |
+|-------|-------|--------|
+| **v0.1** | MVP Core Features | ✅ Complete |
+| **v0.2** | Community Building | Planned |
+| **v0.3** | Hardware Kit & Product Polish | Planned |
+| **v0.4** | Cloud Platform (SaaS) | Planned |
+| **v1.0** | Ecosystem & Marketplace | Planned |
+
+#### Next Steps (v0.2)
+- [ ] Build developer community
+- [ ] Improve documentation and tutorials
+- [ ] Collect user feedback and iterate
+- [ ] Add more device recognition templates
+
+#### Future Plans
+- **Hardware Kits**: Plug-and-play kits with camera, lighting, and enclosure
+- **Advanced Algorithms**: Complex gauge recognition, multi-target detection
+- **Cloud Platform**: Multi-device management, data storage, alerting
+- **Industry Solutions**: Manufacturing, energy, chemical, logistics
 
 ### Phase 1 Implemented Features
 
