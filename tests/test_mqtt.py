@@ -2,10 +2,8 @@
 MQTT 模块单元测试
 """
 
-import pytest
 import json
-from unittest.mock import Mock, patch, MagicMock
-from datetime import datetime
+from unittest.mock import Mock, patch
 
 from retrosight.output.mqtt import (
     MQTTConfig,
@@ -35,7 +33,7 @@ class TestMQTTConfig:
             port=8883,
             username="user",
             password="pass",
-            use_tls=True
+            use_tls=True,
         )
         assert config.host == "mqtt.example.com"
         assert config.port == 8883
@@ -48,12 +46,7 @@ class TestSensorData:
 
     def test_creation(self):
         """测试创建"""
-        data = SensorData(
-            sensor_id="temp_01",
-            value=25.5,
-            unit="°C",
-            confidence=0.95
-        )
+        data = SensorData(sensor_id="temp_01", value=25.5, unit="°C", confidence=0.95)
         assert data.sensor_id == "temp_01"
         assert data.value == 25.5
         assert data.unit == "°C"
@@ -68,20 +61,13 @@ class TestSensorData:
     def test_custom_timestamp(self):
         """测试自定义时间戳"""
         custom_ts = "2024-01-01T00:00:00Z"
-        data = SensorData(
-            sensor_id="test",
-            value=1.0,
-            timestamp=custom_ts
-        )
+        data = SensorData(sensor_id="test", value=1.0, timestamp=custom_ts)
         assert data.timestamp == custom_ts
 
     def test_to_json(self):
         """测试 JSON 序列化"""
         data = SensorData(
-            sensor_id="test",
-            value=1.5,
-            unit="unit",
-            timestamp="2024-01-01T00:00:00Z"
+            sensor_id="test", value=1.5, unit="unit", timestamp="2024-01-01T00:00:00Z"
         )
         json_str = data.to_json()
         parsed = json.loads(json_str)
@@ -95,7 +81,7 @@ class TestSensorData:
         data = SensorData(
             sensor_id="test",
             value=1.0,
-            metadata={"location": "factory1", "device": "CNC01"}
+            metadata={"location": "factory1", "device": "CNC01"},
         )
         assert data.metadata["location"] == "factory1"
         assert data.metadata["device"] == "CNC01"
@@ -117,8 +103,7 @@ class TestMQTTPublisher:
         assert publisher.config.host == "custom.host"
         assert publisher.config.port == 1884
 
-    @patch("retrosight.output.mqtt.MQTTPublisher._init_paho", return_value=None)
-    def test_publish_when_disconnected(self, mock_init):
+    def test_publish_when_disconnected(self):
         """测试断开时发布（缓存）"""
         publisher = MQTTPublisher()
         publisher._running = True
@@ -136,10 +121,7 @@ class TestMQTTPublisher:
         publisher._running = True
 
         result = publisher.publish_value(
-            sensor_id="pressure_01",
-            value=1.23,
-            unit="MPa",
-            confidence=0.98
+            sensor_id="pressure_01", value=1.23, unit="MPa", confidence=0.98
         )
 
         assert result is True
@@ -223,6 +205,80 @@ class TestMQTTSubscriber:
         assert subscriber._topic_matches("a/+/c", "a/x/c") is True
         assert subscriber._topic_matches("a/+/c", "a/b/d") is False
 
+    def test_stop_not_running(self):
+        """测试未运行时停止"""
+        subscriber = MQTTSubscriber()
+        subscriber._running = False
+        subscriber._client = None
+        subscriber.stop()
+        assert subscriber._running is False
+
+    def test_stop_with_client(self):
+        """测试有客户端时停止"""
+        subscriber = MQTTSubscriber()
+        subscriber._running = True
+        mock_client = Mock()
+        subscriber._client = mock_client
+
+        subscriber.stop()
+
+        mock_client.loop_stop.assert_called_once()
+        mock_client.disconnect.assert_called_once()
+        assert subscriber._client is None
+        assert subscriber._running is False
+
+    def test_on_connect_callback(self):
+        """测试连接回调"""
+        subscriber = MQTTSubscriber()
+        callback = Mock()
+        subscriber.subscribe("test/topic", callback)
+
+        mock_client = Mock()
+        subscriber._on_connect(mock_client, None, None, 0)
+
+        # 验证订阅被调用
+        mock_client.subscribe.assert_called_once()
+
+    def test_on_message_callback(self):
+        """测试消息回调"""
+        subscriber = MQTTSubscriber()
+        callback = Mock()
+        topic = f"{subscriber.config.topic_prefix}/test/topic"
+        subscriber._subscriptions[topic] = callback
+
+        # 创建模拟消息
+        mock_msg = Mock()
+        mock_msg.topic = topic
+        mock_msg.payload = b'{"value": 123}'
+
+        subscriber._on_message(None, None, mock_msg)
+
+        callback.assert_called_once_with(topic, '{"value": 123}')
+
+    def test_on_message_callback_exception(self):
+        """测试消息回调异常处理"""
+        subscriber = MQTTSubscriber()
+
+        def bad_callback(topic, payload):
+            raise Exception("Test error")
+
+        topic = f"{subscriber.config.topic_prefix}/test"
+        subscriber._subscriptions[topic] = bad_callback
+
+        mock_msg = Mock()
+        mock_msg.topic = topic
+        mock_msg.payload = b"test"
+
+        # 不应抛出异常
+        subscriber._on_message(None, None, mock_msg)
+
+    def test_start_already_running(self):
+        """测试重复启动返回 True"""
+        subscriber = MQTTSubscriber()
+        subscriber._running = True
+        result = subscriber.start()
+        assert result is True
+
 
 class TestCreatePublisher:
     """测试便捷函数"""
@@ -230,9 +286,7 @@ class TestCreatePublisher:
     def test_create_publisher(self):
         """测试创建发布器"""
         publisher = create_publisher(
-            host="mqtt.test.com",
-            port=1884,
-            topic_prefix="test/prefix"
+            host="mqtt.test.com", port=1884, topic_prefix="test/prefix"
         )
 
         assert isinstance(publisher, MQTTPublisher)
@@ -251,14 +305,170 @@ class TestCreatePublisher:
 class TestMQTTPublisherContextManager:
     """测试上下文管理器"""
 
-    @patch("paho.mqtt.client.Client")
-    def test_context_manager(self, mock_client):
+    def test_context_manager(self):
         """测试上下文管理器协议"""
         config = MQTTConfig()
         publisher = MQTTPublisher(config)
 
         # 模拟 __enter__ 和 __exit__
-        with patch.object(publisher, 'start', return_value=True):
-            with patch.object(publisher, 'stop'):
+        with patch.object(publisher, "start", return_value=True):
+            with patch.object(publisher, "stop"):
                 with publisher as p:
                     assert p is publisher
+
+
+class TestMQTTPublisherStartStop:
+    """测试启动和停止功能"""
+
+    def test_start_already_running(self):
+        """测试重复启动返回 True"""
+        publisher = MQTTPublisher()
+        publisher._running = True
+        result = publisher.start()
+        assert result is True
+
+    def test_start_with_mocked_paho(self):
+        """测试使用 mock 启动"""
+        mock_client = Mock()
+        mock_client.connect_async = Mock()
+        mock_client.loop_start = Mock()
+
+        with patch.dict("sys.modules", {"paho": Mock(), "paho.mqtt": Mock()}):
+            with patch("retrosight.output.mqtt.MQTTPublisher.start") as mock_start:
+                mock_start.return_value = True
+                publisher = MQTTPublisher()
+                result = publisher.start()
+                assert result is True
+
+    def test_stop_when_not_running(self):
+        """测试未启动时停止"""
+        publisher = MQTTPublisher()
+        publisher._running = False
+        publisher._client = None
+        publisher.stop()
+        assert publisher._connected is False
+
+    def test_stop_with_client(self):
+        """测试有客户端时停止"""
+        publisher = MQTTPublisher()
+        publisher._running = True
+        publisher._connected = True
+        mock_client = Mock()
+        publisher._client = mock_client
+
+        publisher.stop()
+
+        mock_client.loop_stop.assert_called_once()
+        mock_client.disconnect.assert_called_once()
+        assert publisher._client is None
+        assert publisher._running is False
+
+
+class TestMQTTPublisherCallbacks:
+    """测试回调功能"""
+
+    def test_on_connect_success(self):
+        """测试连接成功回调"""
+        publisher = MQTTPublisher()
+        callback = Mock()
+        publisher.on_connect(callback)
+
+        # 模拟连接成功
+        publisher._on_connect(None, None, None, 0)
+
+        assert publisher._connected is True
+        callback.assert_called_once()
+
+    def test_on_connect_failure(self):
+        """测试连接失败"""
+        publisher = MQTTPublisher()
+        publisher._on_connect(None, None, None, 1)
+        assert publisher._connected is False
+
+    def test_on_disconnect(self):
+        """测试断开连接回调"""
+        publisher = MQTTPublisher()
+        publisher._connected = True
+        callback = Mock()
+        publisher.on_disconnect(callback)
+
+        publisher._on_disconnect(None, None, 0)
+
+        assert publisher._connected is False
+        callback.assert_called_once()
+
+    def test_on_disconnect_unexpected(self):
+        """测试意外断开"""
+        publisher = MQTTPublisher()
+        publisher._connected = True
+
+        publisher._on_disconnect(None, None, 1)
+
+        assert publisher._connected is False
+
+    def test_on_publish(self):
+        """测试发布完成回调"""
+        publisher = MQTTPublisher()
+        # 不应抛出异常
+        publisher._on_publish(None, None, 123)
+
+
+class TestMQTTPublisherBuffer:
+    """测试缓冲区功能"""
+
+    def test_flush_buffer_empty(self):
+        """测试空缓冲区"""
+        publisher = MQTTPublisher()
+        publisher._connected = True
+        publisher._flush_buffer()
+        # 不应抛出异常
+
+    def test_flush_buffer_with_messages(self):
+        """测试有消息的缓冲区"""
+        publisher = MQTTPublisher()
+        publisher._running = True
+        publisher._connected = False
+
+        # 添加消息到缓冲区
+        publisher.publish_value("test", 1.0)
+        publisher.publish_value("test", 2.0)
+        assert publisher.buffer_size == 2
+
+        # 模拟连接
+        publisher._connected = True
+        publisher._flush_buffer()
+
+    def test_publish_raw(self):
+        """测试原始发布"""
+        publisher = MQTTPublisher()
+        publisher._running = True
+
+        result = publisher.publish_raw("custom/topic", '{"key": "value"}')
+        assert result is True
+
+    def test_publish_batch(self):
+        """测试批量发布"""
+        publisher = MQTTPublisher()
+        publisher._running = True
+
+        data_list = [
+            SensorData(sensor_id="s1", value=1.0),
+            SensorData(sensor_id="s2", value=2.0),
+            SensorData(sensor_id="s3", value=3.0),
+        ]
+
+        count = publisher.publish_batch(data_list)
+        assert count == 3
+        assert publisher.buffer_size == 3
+
+    def test_callback_exception_handling(self):
+        """测试回调异常处理"""
+        publisher = MQTTPublisher()
+
+        def bad_callback():
+            raise Exception("Test error")
+
+        publisher.on_connect(bad_callback)
+        # 不应抛出异常
+        publisher._on_connect(None, None, None, 0)
+        assert publisher._connected is True

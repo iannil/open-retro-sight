@@ -11,7 +11,7 @@
 
 import cv2
 import numpy as np
-from typing import Optional, List, Tuple, Union
+from typing import Optional, List, Tuple
 from dataclasses import dataclass, field
 import re
 import logging
@@ -22,22 +22,24 @@ logger = logging.getLogger(__name__)
 @dataclass
 class OCRResult:
     """OCR识别结果"""
-    text: str                           # 识别文本
-    value: Optional[float] = None       # 解析后的数值
-    confidence: float = 0.0             # 置信度 (0-1)
+
+    text: str  # 识别文本
+    value: Optional[float] = None  # 解析后的数值
+    confidence: float = 0.0  # 置信度 (0-1)
     bbox: Optional[Tuple[int, int, int, int]] = None  # 边界框 (x, y, w, h)
-    raw_results: list = field(default_factory=list)   # 原始OCR结果
+    raw_results: list = field(default_factory=list)  # 原始OCR结果
 
 
 @dataclass
 class OCRConfig:
     """OCR配置"""
-    use_gpu: bool = False               # 是否使用GPU
-    lang: str = "en"                    # 语言 (en/ch)
-    det_model_dir: Optional[str] = None # 检测模型路径
-    rec_model_dir: Optional[str] = None # 识别模型路径
-    use_angle_cls: bool = False         # 是否使用方向分类
-    show_log: bool = False              # 是否显示日志
+
+    use_gpu: bool = False  # 是否使用GPU
+    lang: str = "en"  # 语言 (en/ch)
+    det_model_dir: Optional[str] = None  # 检测模型路径
+    rec_model_dir: Optional[str] = None  # 识别模型路径
+    use_angle_cls: bool = False  # 是否使用方向分类
+    show_log: bool = False  # 是否显示日志
 
 
 class OCRRecognizer:
@@ -113,9 +115,7 @@ class OCRRecognizer:
         return self._parse_results(results)
 
     def recognize_region(
-        self,
-        image: np.ndarray,
-        region: Tuple[int, int, int, int]
+        self, image: np.ndarray, region: Tuple[int, int, int, int]
     ) -> OCRResult:
         """
         识别指定区域的数字
@@ -130,7 +130,7 @@ class OCRRecognizer:
         x, y, w, h = region
 
         # 裁剪区域
-        cropped = image[y:y+h, x:x+w]
+        cropped = image[y : y + h, x : x + w]
 
         # 识别
         result = self.recognize(cropped)
@@ -166,10 +166,7 @@ class OCRRecognizer:
 
         # 自适应二值化
         binary = cv2.adaptiveThreshold(
-            enhanced, 255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY,
-            11, 2
+            enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
         )
 
         # 形态学处理 - 增强小数点
@@ -223,7 +220,7 @@ class OCRRecognizer:
             value=value,
             confidence=avg_conf,
             bbox=bbox,
-            raw_results=results
+            raw_results=results,
         )
 
     def _extract_number(self, text: str) -> Optional[float]:
@@ -240,15 +237,15 @@ class OCRRecognizer:
         cleaned = text.strip()
 
         # 替换常见OCR错误
-        cleaned = cleaned.replace('O', '0')
-        cleaned = cleaned.replace('o', '0')
-        cleaned = cleaned.replace('l', '1')
-        cleaned = cleaned.replace('I', '1')
-        cleaned = cleaned.replace(',', '.')
-        cleaned = cleaned.replace(' ', '')
+        cleaned = cleaned.replace("O", "0")
+        cleaned = cleaned.replace("o", "0")
+        cleaned = cleaned.replace("l", "1")
+        cleaned = cleaned.replace("I", "1")
+        cleaned = cleaned.replace(",", ".")
+        cleaned = cleaned.replace(" ", "")
 
         # 正则匹配数字
-        pattern = r'-?\d+\.?\d*(?:[eE][+-]?\d+)?'
+        pattern = r"-?\d+\.?\d*(?:[eE][+-]?\d+)?"
         matches = re.findall(pattern, cleaned)
 
         if matches:
@@ -259,10 +256,7 @@ class OCRRecognizer:
 
         return None
 
-    def _merge_boxes(
-        self,
-        boxes: List[List[List[float]]]
-    ) -> Tuple[int, int, int, int]:
+    def _merge_boxes(self, boxes: List[List[List[float]]]) -> Tuple[int, int, int, int]:
         """
         合并多个边界框
 
@@ -300,8 +294,11 @@ class SimpleOCR:
     def __init__(self):
         self._tesseract_available = False
         try:
-            import pytesseract
-            self._tesseract_available = True
+            import importlib.util
+
+            self._tesseract_available = (
+                importlib.util.find_spec("pytesseract") is not None
+            )
         except ImportError:
             logger.warning("pytesseract 未安装，SimpleOCR 功能受限")
 
@@ -313,11 +310,13 @@ class SimpleOCR:
         import pytesseract
 
         # 预处理
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
+        gray = (
+            cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
+        )
         _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
         # Tesseract识别
-        config = '--psm 7 -c tessedit_char_whitelist=0123456789.-'
+        config = "--psm 7 -c tessedit_char_whitelist=0123456789.-"
         text = pytesseract.image_to_string(binary, config=config).strip()
 
         # 提取数值

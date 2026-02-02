@@ -20,13 +20,14 @@ import time
 @dataclass
 class FilterConfig:
     """滤波器配置"""
-    window_size: int = 5              # 滑动窗口大小
-    process_variance: float = 1e-5    # 卡尔曼滤波过程噪声
-    measure_variance: float = 1e-1    # 卡尔曼滤波测量噪声
-    alpha: float = 0.3                # 指数平滑系数
-    outlier_threshold: float = 3.0    # 异常值阈值（标准差倍数）
-    min_value: Optional[float] = None # 最小有效值
-    max_value: Optional[float] = None # 最大有效值
+
+    window_size: int = 5  # 滑动窗口大小
+    process_variance: float = 1e-5  # 卡尔曼滤波过程噪声
+    measure_variance: float = 1e-1  # 卡尔曼滤波测量噪声
+    alpha: float = 0.3  # 指数平滑系数
+    outlier_threshold: float = 3.0  # 异常值阈值（标准差倍数）
+    min_value: Optional[float] = None  # 最小有效值
+    max_value: Optional[float] = None  # 最大有效值
     max_change_rate: Optional[float] = None  # 最大变化率
 
 
@@ -47,7 +48,7 @@ class KalmanFilter1D:
         self,
         process_variance: float = 1e-5,
         measure_variance: float = 1e-1,
-        initial_value: float = 0.0
+        initial_value: float = 0.0,
     ):
         """
         初始化卡尔曼滤波器
@@ -210,10 +211,7 @@ class OutlierFilter:
     """
 
     def __init__(
-        self,
-        window_size: int = 10,
-        threshold: float = 3.0,
-        min_samples: int = 3
+        self, window_size: int = 10, threshold: float = 3.0, min_samples: int = 3
     ):
         """
         初始化异常值过滤器
@@ -294,7 +292,7 @@ class ValueValidator:
         self,
         min_value: Optional[float] = None,
         max_value: Optional[float] = None,
-        max_change_rate: Optional[float] = None
+        max_change_rate: Optional[float] = None,
     ):
         """
         初始化校验器
@@ -375,14 +373,10 @@ class CompositeFilter:
         self._validator: Optional[ValueValidator] = None
 
     def add_kalman_filter(
-        self,
-        process_variance: float = 1e-5,
-        measure_variance: float = 1e-1
+        self, process_variance: float = 1e-5, measure_variance: float = 1e-1
     ) -> "CompositeFilter":
         """添加卡尔曼滤波器"""
-        self._filters.append(
-            KalmanFilter1D(process_variance, measure_variance)
-        )
+        self._filters.append(KalmanFilter1D(process_variance, measure_variance))
         return self
 
     def add_moving_average(self, window_size: int = 5) -> "CompositeFilter":
@@ -396,9 +390,7 @@ class CompositeFilter:
         return self
 
     def add_outlier_filter(
-        self,
-        threshold: float = 3.0,
-        window_size: int = 10
+        self, threshold: float = 3.0, window_size: int = 10
     ) -> "CompositeFilter":
         """添加异常值过滤器"""
         self._filters.append(OutlierFilter(window_size, threshold))
@@ -408,7 +400,7 @@ class CompositeFilter:
         self,
         min_value: Optional[float] = None,
         max_value: Optional[float] = None,
-        max_change_rate: Optional[float] = None
+        max_change_rate: Optional[float] = None,
     ) -> "CompositeFilter":
         """设置数值校验器"""
         self._validator = ValueValidator(min_value, max_value, max_change_rate)

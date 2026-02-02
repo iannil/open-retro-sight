@@ -4,7 +4,6 @@
 
 import pytest
 import numpy as np
-from unittest.mock import Mock, patch
 
 from retrosight.preprocessing.enhancement import (
     EnhancementMode,
@@ -53,7 +52,7 @@ class TestEnhancementConfig:
             mode=EnhancementMode.LOW_LIGHT,
             clahe_clip_limit=3.0,
             denoise_strength=15,
-            gamma=0.8
+            gamma=0.8,
         )
         assert config.mode == EnhancementMode.LOW_LIGHT
         assert config.clahe_clip_limit == 3.0
@@ -162,14 +161,19 @@ class TestImageEnhancer:
         assert result.shape == dark_image.shape
 
     def test_apply_gamma(self, enhancer, low_contrast_image):
-        """测试 Gamma 校正"""
-        # Gamma < 1 会增亮图像
-        result = enhancer._apply_gamma(low_contrast_image, 0.5)
-        assert np.mean(result) > np.mean(low_contrast_image)
+        """测试 Gamma 校正
 
-        # Gamma > 1 会变暗图像
-        result = enhancer._apply_gamma(low_contrast_image, 2.0)
+        注意：实现使用 inv_gamma = 1/gamma，所以：
+        - gamma < 1 时 inv_gamma > 1，图像变暗
+        - gamma > 1 时 inv_gamma < 1，图像变亮
+        """
+        # Gamma < 1 时 inv_gamma > 1，图像变暗
+        result = enhancer._apply_gamma(low_contrast_image, 0.5)
         assert np.mean(result) < np.mean(low_contrast_image)
+
+        # Gamma > 1 时 inv_gamma < 1，图像变亮
+        result = enhancer._apply_gamma(low_contrast_image, 2.0)
+        assert np.mean(result) > np.mean(low_contrast_image)
 
     def test_sharpen(self, enhancer, low_contrast_image):
         """测试锐化"""
@@ -260,7 +264,7 @@ class TestGlareRemover:
             img = np.ones((100, 100, 3), dtype=np.uint8) * 100
             # 不同位置的反光
             x = 30 + i * 20
-            img[40:60, x:x+20, :] = 250
+            img[40:60, x : x + 20, :] = 250
             images.append(img)
 
         result = remover.multi_angle_fusion(images)
@@ -340,9 +344,7 @@ class TestMultiFrameFusion:
         result = fusion.fuse()
         # 均值融合相同帧应该返回相同值
         np.testing.assert_array_almost_equal(
-            result.astype(float),
-            test_frame.astype(float),
-            decimal=0
+            result.astype(float), test_frame.astype(float), decimal=0
         )
 
     def test_fuse_median(self, test_frame):

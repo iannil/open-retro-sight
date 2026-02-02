@@ -4,7 +4,6 @@
 
 import pytest
 import numpy as np
-from unittest.mock import Mock, patch
 
 from retrosight.recognition.light import (
     LightColor,
@@ -68,9 +67,7 @@ class TestLightConfig:
     def test_custom_values(self):
         """测试自定义值"""
         config = LightConfig(
-            region=(10, 20, 50, 50),
-            brightness_threshold=150,
-            min_area=100
+            region=(10, 20, 50, 50), brightness_threshold=150, min_area=100
         )
         assert config.region == (10, 20, 50, 50)
         assert config.brightness_threshold == 150
@@ -83,10 +80,7 @@ class TestLightResult:
     def test_creation(self):
         """测试创建"""
         result = LightResult(
-            color=LightColor.RED,
-            state=LightState.ON,
-            brightness=200.0,
-            confidence=0.95
+            color=LightColor.RED, state=LightState.ON, brightness=200.0, confidence=0.95
         )
         assert result.color == LightColor.RED
         assert result.state == LightState.ON
@@ -95,10 +89,7 @@ class TestLightResult:
 
     def test_default_values(self):
         """测试默认值"""
-        result = LightResult(
-            color=LightColor.GREEN,
-            state=LightState.OFF
-        )
+        result = LightResult(color=LightColor.GREEN, state=LightState.OFF)
         assert result.brightness == 0.0
         assert result.confidence == 0.0
         assert result.position is None
@@ -218,10 +209,7 @@ class TestLightRecognizer:
         """测试可视化"""
         results = [
             LightResult(
-                color=LightColor.GREEN,
-                state=LightState.ON,
-                position=(50, 50),
-                area=100
+                color=LightColor.GREEN, state=LightState.ON, position=(50, 50), area=100
             )
         ]
         output = recognizer.visualize(green_image, results)

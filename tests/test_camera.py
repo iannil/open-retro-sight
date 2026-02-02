@@ -2,10 +2,8 @@
 摄像头模块单元测试
 """
 
-import pytest
 import numpy as np
-from unittest.mock import Mock, patch, MagicMock
-import queue
+from unittest.mock import patch, MagicMock
 
 from retrosight.capture.camera import (
     Camera,
@@ -42,11 +40,7 @@ class TestCameraConfig:
     def test_custom_values(self):
         """测试自定义值"""
         config = CameraConfig(
-            source=1,
-            width=1280,
-            height=720,
-            fps=60,
-            camera_type=CameraType.CSI
+            source=1, width=1280, height=720, fps=60, camera_type=CameraType.CSI
         )
         assert config.source == 1
         assert config.width == 1280
@@ -57,8 +51,7 @@ class TestCameraConfig:
     def test_rtsp_source(self):
         """测试 RTSP 源"""
         config = CameraConfig(
-            source="rtsp://192.168.1.100:554/stream",
-            camera_type=CameraType.RTSP
+            source="rtsp://192.168.1.100:554/stream", camera_type=CameraType.RTSP
         )
         assert config.source == "rtsp://192.168.1.100:554/stream"
 
@@ -136,7 +129,7 @@ class TestCamera:
         mock_cap.isOpened.return_value = True
         mock_cap.get.side_effect = lambda prop: {
             3: 1280.0,  # CAP_PROP_FRAME_WIDTH
-            4: 720.0,   # CAP_PROP_FRAME_HEIGHT
+            4: 720.0,  # CAP_PROP_FRAME_HEIGHT
         }.get(prop, 0)
         mock_capture.return_value = mock_cap
 
@@ -239,6 +232,7 @@ class TestListCameras:
     @patch("cv2.VideoCapture")
     def test_list_cameras(self, mock_capture):
         """测试列出摄像头"""
+
         # 模拟：索引 0 和 2 可用，索引 1 不可用
         def create_mock_cap(index):
             mock = MagicMock()

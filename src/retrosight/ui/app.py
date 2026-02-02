@@ -16,7 +16,7 @@ import streamlit as st
 import cv2
 import numpy as np
 import time
-from typing import Optional, Dict, Any, Tuple, List
+from typing import Optional, Tuple
 from dataclasses import dataclass, asdict
 import json
 import logging
@@ -28,13 +28,14 @@ st.set_page_config(
     page_title="Open-RetroSight",
     page_icon="👁️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 
 @dataclass
 class AppConfig:
     """应用配置"""
+
     # 摄像头配置
     camera_source: int = 0
     camera_width: int = 640
@@ -99,7 +100,7 @@ def render_sidebar():
             min_value=0,
             max_value=10,
             value=config.camera_source,
-            help="USB 摄像头设备编号，通常为 0"
+            help="USB 摄像头设备编号，通常为 0",
         )
 
         col1, col2 = st.columns(2)
@@ -107,65 +108,56 @@ def render_sidebar():
             config.camera_width = st.selectbox(
                 "宽度",
                 options=[320, 640, 800, 1280, 1920],
-                index=[320, 640, 800, 1280, 1920].index(config.camera_width)
+                index=[320, 640, 800, 1280, 1920].index(config.camera_width),
             )
         with col2:
             config.camera_height = st.selectbox(
                 "高度",
                 options=[240, 480, 600, 720, 1080],
-                index=[240, 480, 600, 720, 1080].index(config.camera_height)
+                index=[240, 480, 600, 720, 1080].index(config.camera_height),
             )
 
         config.camera_fps = st.slider(
-            "帧率",
-            min_value=1,
-            max_value=60,
-            value=config.camera_fps
+            "帧率", min_value=1, max_value=60, value=config.camera_fps
         )
 
     # ROI 配置
     with st.sidebar.expander("🔲 识别区域 (ROI)", expanded=True):
         config.roi_enabled = st.checkbox(
-            "启用 ROI",
-            value=config.roi_enabled,
-            help="仅识别指定区域内的数字"
+            "启用 ROI", value=config.roi_enabled, help="仅识别指定区域内的数字"
         )
 
         if config.roi_enabled:
             col1, col2 = st.columns(2)
             with col1:
                 config.roi_x = st.number_input("X", min_value=0, value=config.roi_x)
-                config.roi_width = st.number_input("宽度", min_value=10, value=config.roi_width)
+                config.roi_width = st.number_input(
+                    "宽度", min_value=10, value=config.roi_width
+                )
             with col2:
                 config.roi_y = st.number_input("Y", min_value=0, value=config.roi_y)
-                config.roi_height = st.number_input("高度", min_value=10, value=config.roi_height)
+                config.roi_height = st.number_input(
+                    "高度", min_value=10, value=config.roi_height
+                )
 
     # OCR 配置
     with st.sidebar.expander("🔤 OCR 识别", expanded=False):
-        config.ocr_enabled = st.checkbox(
-            "启用 OCR",
-            value=config.ocr_enabled
-        )
+        config.ocr_enabled = st.checkbox("启用 OCR", value=config.ocr_enabled)
 
         config.ocr_lang = st.selectbox(
             "语言",
             options=["en", "ch"],
             index=0 if config.ocr_lang == "en" else 1,
-            help="en: 英文数字, ch: 中文"
+            help="en: 英文数字, ch: 中文",
         )
 
         config.ocr_use_gpu = st.checkbox(
-            "使用 GPU",
-            value=config.ocr_use_gpu,
-            help="需要 CUDA 支持"
+            "使用 GPU", value=config.ocr_use_gpu, help="需要 CUDA 支持"
         )
 
     # 滤波配置
     with st.sidebar.expander("📊 数据平滑", expanded=False):
-        config.filter_enabled = st.checkbox(
-            "启用滤波",
-            value=config.filter_enabled
-        )
+        config.filter_enabled = st.checkbox("启用滤波", value=config.filter_enabled)
 
         if config.filter_enabled:
             config.filter_type = st.selectbox(
@@ -174,8 +166,8 @@ def render_sidebar():
                 format_func=lambda x: {
                     "kalman": "卡尔曼滤波",
                     "moving_average": "滑动平均",
-                    "exponential": "指数平滑"
-                }[x]
+                    "exponential": "指数平滑",
+                }[x],
             )
 
             if config.filter_type == "moving_average":
@@ -183,7 +175,7 @@ def render_sidebar():
                     "窗口大小",
                     min_value=2,
                     max_value=20,
-                    value=config.filter_window_size
+                    value=config.filter_window_size,
                 )
 
             if config.filter_type == "exponential":
@@ -192,43 +184,30 @@ def render_sidebar():
                     min_value=0.1,
                     max_value=1.0,
                     value=config.filter_alpha,
-                    help="越大响应越快"
+                    help="越大响应越快",
                 )
 
     # MQTT 配置
     with st.sidebar.expander("📡 MQTT", expanded=False):
-        config.mqtt_enabled = st.checkbox(
-            "启用 MQTT",
-            value=config.mqtt_enabled
-        )
+        config.mqtt_enabled = st.checkbox("启用 MQTT", value=config.mqtt_enabled)
 
         if config.mqtt_enabled:
-            config.mqtt_host = st.text_input(
-                "Broker 地址",
-                value=config.mqtt_host
-            )
+            config.mqtt_host = st.text_input("Broker 地址", value=config.mqtt_host)
 
             config.mqtt_port = st.number_input(
-                "端口",
-                min_value=1,
-                max_value=65535,
-                value=config.mqtt_port
+                "端口", min_value=1, max_value=65535, value=config.mqtt_port
             )
 
             config.mqtt_topic_prefix = st.text_input(
-                "主题前缀",
-                value=config.mqtt_topic_prefix
+                "主题前缀", value=config.mqtt_topic_prefix
             )
 
             config.mqtt_username = st.text_input(
-                "用户名（可选）",
-                value=config.mqtt_username
+                "用户名（可选）", value=config.mqtt_username
             )
 
             config.mqtt_password = st.text_input(
-                "密码（可选）",
-                value=config.mqtt_password,
-                type="password"
+                "密码（可选）", value=config.mqtt_password, type="password"
             )
 
             if st.button("测试连接"):
@@ -262,7 +241,7 @@ def render_sidebar():
 def render_main_content():
     """渲染主内容区域"""
     st.title("👁️ Open-RetroSight")
-    st.caption("非侵入式工业边缘AI网关 - 给老机器装上\"数字眼睛\"")
+    st.caption('非侵入式工业边缘AI网关 - 给老机器装上"数字眼睛"')
 
     # 控制按钮
     col1, col2, col3, col4 = st.columns([1, 1, 1, 2])
@@ -271,7 +250,7 @@ def render_main_content():
         if st.button(
             "▶️ 启动" if not st.session_state.camera_running else "⏹️ 停止",
             use_container_width=True,
-            type="primary" if not st.session_state.camera_running else "secondary"
+            type="primary" if not st.session_state.camera_running else "secondary",
         ):
             st.session_state.camera_running = not st.session_state.camera_running
             st.rerun()
@@ -301,7 +280,7 @@ def render_main_content():
             video_placeholder.image(
                 placeholder_img,
                 caption="点击「启动」开始预览",
-                use_container_width=True
+                use_container_width=True,
             )
 
     with col_info:
@@ -315,9 +294,7 @@ def render_info_panel():
     # 当前数值
     if st.session_state.last_value is not None:
         st.metric(
-            label="当前数值",
-            value=f"{st.session_state.last_value:.2f}",
-            delta=None
+            label="当前数值", value=f"{st.session_state.last_value:.2f}", delta=None
         )
     else:
         st.metric(label="当前数值", value="--")
@@ -390,7 +367,7 @@ def run_camera_loop(video_placeholder):
                     (roi[0], roi[1]),
                     (roi[0] + roi[2], roi[1] + roi[3]),
                     (0, 255, 0),
-                    2
+                    2,
                 )
 
             # 每隔几帧进行 OCR 识别（降低 CPU 占用）
@@ -399,18 +376,19 @@ def run_camera_loop(video_placeholder):
                     # 延迟加载 OCR
                     if ocr_recognizer is None:
                         from retrosight.recognition.ocr import OCRRecognizer, OCRConfig
+
                         ocr_config = OCRConfig(
                             lang=config.ocr_lang,
                             use_gpu=config.ocr_use_gpu,
-                            show_log=False
+                            show_log=False,
                         )
                         ocr_recognizer = OCRRecognizer(ocr_config)
 
                     # 识别
                     if config.roi_enabled:
                         roi_frame = frame[
-                            config.roi_y:config.roi_y + config.roi_height,
-                            config.roi_x:config.roi_x + config.roi_width
+                            config.roi_y : config.roi_y + config.roi_height,
+                            config.roi_x : config.roi_x + config.roi_width,
                         ]
                         result = ocr_recognizer.recognize(roi_frame)
                     else:
@@ -428,7 +406,9 @@ def run_camera_loop(video_placeholder):
 
                         # 限制历史记录长度
                         if len(st.session_state.value_history) > 1000:
-                            st.session_state.value_history = st.session_state.value_history[-500:]
+                            st.session_state.value_history = (
+                                st.session_state.value_history[-500:]
+                            )
 
                         # 在画面上显示数值
                         cv2.putText(
@@ -438,7 +418,7 @@ def run_camera_loop(video_placeholder):
                             cv2.FONT_HERSHEY_SIMPLEX,
                             1,
                             (0, 255, 0),
-                            2
+                            2,
                         )
 
                 except Exception as e:
@@ -449,9 +429,7 @@ def run_camera_loop(video_placeholder):
 
             # 更新显示
             video_placeholder.image(
-                display_frame,
-                caption=f"帧: {frame_count}",
-                use_container_width=True
+                display_frame, caption=f"帧: {frame_count}", use_container_width=True
             )
 
             # 控制帧率
@@ -469,14 +447,17 @@ def create_filter(config: AppConfig):
     try:
         if config.filter_type == "kalman":
             from retrosight.preprocessing.filter import KalmanFilter1D
+
             return KalmanFilter1D()
 
         elif config.filter_type == "moving_average":
             from retrosight.preprocessing.filter import MovingAverage
+
             return MovingAverage(window_size=config.filter_window_size)
 
         elif config.filter_type == "exponential":
             from retrosight.preprocessing.filter import ExponentialSmoothing
+
             return ExponentialSmoothing(alpha=config.filter_alpha)
 
     except ImportError as e:
@@ -544,8 +525,7 @@ def test_mqtt_connection(config: AppConfig) -> Tuple[bool, str]:
 
         # 创建客户端
         client = mqtt.Client(
-            client_id=f"retrosight_test_{int(time.time())}",
-            protocol=mqtt.MQTTv311
+            client_id=f"retrosight_test_{int(time.time())}", protocol=mqtt.MQTTv311
         )
 
         # 设置认证
@@ -565,9 +545,11 @@ def test_mqtt_connection(config: AppConfig) -> Tuple[bool, str]:
                     2: "客户端标识符无效",
                     3: "服务器不可用",
                     4: "用户名或密码错误",
-                    5: "未授权"
+                    5: "未授权",
                 }
-                connection_result["message"] = error_messages.get(rc, f"未知错误 (rc={rc})")
+                connection_result["message"] = error_messages.get(
+                    rc, f"未知错误 (rc={rc})"
+                )
 
         client.on_connect = on_connect
 

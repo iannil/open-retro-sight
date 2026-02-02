@@ -12,7 +12,7 @@
 
 import cv2
 import numpy as np
-from typing import Optional, Tuple, List, Union
+from typing import Optional, Tuple, List
 from dataclasses import dataclass
 import logging
 
@@ -22,12 +22,13 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TransformConfig:
     """变换配置"""
-    auto_detect: bool = False         # 是否自动检测角点
-    target_width: int = 200           # 目标宽度
-    target_height: int = 100          # 目标高度
-    border_margin: int = 5            # 边框边距
-    canny_threshold1: int = 50        # Canny 边缘检测阈值1
-    canny_threshold2: int = 150       # Canny 边缘检测阈值2
+
+    auto_detect: bool = False  # 是否自动检测角点
+    target_width: int = 200  # 目标宽度
+    target_height: int = 100  # 目标高度
+    border_margin: int = 5  # 边框边距
+    canny_threshold1: int = 50  # Canny 边缘检测阈值1
+    canny_threshold2: int = 150  # Canny 边缘检测阈值2
 
 
 class PerspectiveTransform:
@@ -68,7 +69,7 @@ class PerspectiveTransform:
     def set_source_points(
         self,
         points: List[Tuple[float, float]],
-        target_size: Optional[Tuple[int, int]] = None
+        target_size: Optional[Tuple[int, int]] = None,
     ):
         """
         设置源图像的四个角点
@@ -87,21 +88,14 @@ class PerspectiveTransform:
         w = target_size[0] if target_size else self.config.target_width
         h = target_size[1] if target_size else self.config.target_height
 
-        self._dst_points = np.array([
-            [0, 0],
-            [w - 1, 0],
-            [w - 1, h - 1],
-            [0, h - 1]
-        ], dtype=np.float32)
+        self._dst_points = np.array(
+            [[0, 0], [w - 1, 0], [w - 1, h - 1], [0, h - 1]], dtype=np.float32
+        )
 
         # 计算变换矩阵
-        self._matrix = cv2.getPerspectiveTransform(
-            self._src_points,
-            self._dst_points
-        )
+        self._matrix = cv2.getPerspectiveTransform(self._src_points, self._dst_points)
         self._inverse_matrix = cv2.getPerspectiveTransform(
-            self._dst_points,
-            self._src_points
+            self._dst_points, self._src_points
         )
 
     def apply(self, image: np.ndarray) -> np.ndarray:
@@ -129,7 +123,9 @@ class PerspectiveTransform:
 
         return cv2.warpPerspective(image, self._matrix, (w, h))
 
-    def apply_inverse(self, image: np.ndarray, target_size: Tuple[int, int]) -> np.ndarray:
+    def apply_inverse(
+        self, image: np.ndarray, target_size: Tuple[int, int]
+    ) -> np.ndarray:
         """
         应用逆透视变换（将校正后的图像变换回原视角）
 
@@ -163,8 +159,7 @@ class PerspectiveTransform:
         return (float(dst[0][0][0]), float(dst[0][0][1]))
 
     def transform_points(
-        self,
-        points: List[Tuple[float, float]]
+        self, points: List[Tuple[float, float]]
     ) -> List[Tuple[float, float]]:
         """
         变换多个点坐标
@@ -198,9 +193,7 @@ class PerspectiveTransform:
 
         # 边缘检测
         edges = cv2.Canny(
-            blurred,
-            self.config.canny_threshold1,
-            self.config.canny_threshold2
+            blurred, self.config.canny_threshold1, self.config.canny_threshold2
         )
 
         # 膨胀边缘
@@ -209,9 +202,7 @@ class PerspectiveTransform:
 
         # 查找轮廓
         contours, _ = cv2.findContours(
-            edges,
-            cv2.RETR_EXTERNAL,
-            cv2.CHAIN_APPROX_SIMPLE
+            edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
 
         if not contours:
@@ -326,8 +317,9 @@ class ImageRegistration:
         self._reference = gray
 
         # 检测特征点
-        self._reference_keypoints, self._reference_descriptors = \
+        self._reference_keypoints, self._reference_descriptors = (
             self._detector.detectAndCompute(gray, None)
+        )
 
     def align(self, image: np.ndarray) -> np.ndarray:
         """
@@ -367,16 +359,16 @@ class ImageRegistration:
         matches = sorted(matches, key=lambda x: x.distance)
 
         # 取前 N 个最佳匹配
-        good_matches = matches[:min(50, len(matches))]
+        good_matches = matches[: min(50, len(matches))]
 
         # 提取匹配点
-        src_pts = np.float32([
-            keypoints[m.queryIdx].pt for m in good_matches
-        ]).reshape(-1, 1, 2)
+        src_pts = np.float32([keypoints[m.queryIdx].pt for m in good_matches]).reshape(
+            -1, 1, 2
+        )
 
-        dst_pts = np.float32([
-            self._reference_keypoints[m.trainIdx].pt for m in good_matches
-        ]).reshape(-1, 1, 2)
+        dst_pts = np.float32(
+            [self._reference_keypoints[m.trainIdx].pt for m in good_matches]
+        ).reshape(-1, 1, 2)
 
         # 计算变换矩阵
         matrix, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
@@ -426,7 +418,7 @@ class LensDistortionCorrector:
         self,
         images: List[np.ndarray],
         pattern_size: Tuple[int, int] = (9, 6),
-        square_size: float = 1.0
+        square_size: float = 1.0,
     ) -> bool:
         """
         使用棋盘格图像进行标定
@@ -441,7 +433,9 @@ class LensDistortionCorrector:
         """
         # 准备对象点
         objp = np.zeros((pattern_size[0] * pattern_size[1], 3), np.float32)
-        objp[:, :2] = np.mgrid[0:pattern_size[0], 0:pattern_size[1]].T.reshape(-1, 2)
+        objp[:, :2] = np.mgrid[0 : pattern_size[0], 0 : pattern_size[1]].T.reshape(
+            -1, 2
+        )
         objp *= square_size
 
         obj_points = []  # 3D 点
@@ -460,8 +454,14 @@ class LensDistortionCorrector:
                 obj_points.append(objp)
 
                 # 亚像素精确化
-                criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-                corners_refined = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+                criteria = (
+                    cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER,
+                    30,
+                    0.001,
+                )
+                corners_refined = cv2.cornerSubPix(
+                    gray, corners, (11, 11), (-1, -1), criteria
+                )
                 img_points.append(corners_refined)
 
         if len(obj_points) < 3:
@@ -488,11 +488,7 @@ class LensDistortionCorrector:
         logger.info("相机标定成功")
         return True
 
-    def set_coefficients(
-        self,
-        camera_matrix: np.ndarray,
-        dist_coeffs: np.ndarray
-    ):
+    def set_coefficients(self, camera_matrix: np.ndarray, dist_coeffs: np.ndarray):
         """
         直接设置标定参数
 
@@ -518,22 +514,21 @@ class LensDistortionCorrector:
             return image
 
         # 使用最优相机矩阵或原矩阵
-        new_mtx = self._new_camera_matrix if self._new_camera_matrix is not None \
+        new_mtx = (
+            self._new_camera_matrix
+            if self._new_camera_matrix is not None
             else self._camera_matrix
+        )
 
         # 校正畸变
         undistorted = cv2.undistort(
-            image,
-            self._camera_matrix,
-            self._dist_coeffs,
-            None,
-            new_mtx
+            image, self._camera_matrix, self._dist_coeffs, None, new_mtx
         )
 
         # 裁剪到有效区域
         if crop and self._roi is not None:
             x, y, w, h = self._roi
-            undistorted = undistorted[y:y+h, x:x+w]
+            undistorted = undistorted[y : y + h, x : x + w]
 
         return undistorted
 
@@ -552,7 +547,7 @@ class LensDistortionCorrector:
             camera_matrix=self._camera_matrix,
             dist_coeffs=self._dist_coeffs,
             new_camera_matrix=self._new_camera_matrix,
-            roi=np.array(self._roi) if self._roi else None
+            roi=np.array(self._roi) if self._roi else None,
         )
 
     def load_calibration(self, filepath: str):
@@ -568,7 +563,7 @@ class LensDistortionCorrector:
 def four_point_transform(
     image: np.ndarray,
     points: List[Tuple[float, float]],
-    target_size: Optional[Tuple[int, int]] = None
+    target_size: Optional[Tuple[int, int]] = None,
 ) -> np.ndarray:
     """
     便捷函数：四点透视变换

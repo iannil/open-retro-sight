@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class LightColor(Enum):
     """指示灯颜色"""
+
     RED = "red"
     YELLOW = "yellow"
     GREEN = "green"
@@ -35,15 +36,17 @@ class LightColor(Enum):
 
 class LightState(Enum):
     """指示灯状态"""
-    OFF = "off"           # 熄灭
-    ON = "on"             # 常亮
-    BLINKING = "blinking" # 闪烁
-    UNKNOWN = "unknown"   # 未知
+
+    OFF = "off"  # 熄灭
+    ON = "on"  # 常亮
+    BLINKING = "blinking"  # 闪烁
+    UNKNOWN = "unknown"  # 未知
 
 
 @dataclass
 class ColorRange:
     """HSV 颜色范围"""
+
     lower: Tuple[int, int, int]  # H, S, V 下限
     upper: Tuple[int, int, int]  # H, S, V 上限
 
@@ -51,6 +54,7 @@ class ColorRange:
 @dataclass
 class LightConfig:
     """指示灯配置"""
+
     # 检测区域 (x, y, width, height)，None 表示全图
     region: Optional[Tuple[int, int, int, int]] = None
     # 最小亮度阈值
@@ -70,36 +74,27 @@ class LightConfig:
 @dataclass
 class LightResult:
     """指示灯识别结果"""
-    color: LightColor             # 颜色
-    state: LightState             # 状态
-    brightness: float = 0.0       # 亮度 (0-255)
-    confidence: float = 0.0       # 置信度
+
+    color: LightColor  # 颜色
+    state: LightState  # 状态
+    brightness: float = 0.0  # 亮度 (0-255)
+    confidence: float = 0.0  # 置信度
     position: Optional[Tuple[int, int]] = None  # 中心位置
-    area: int = 0                 # 面积
+    area: int = 0  # 面积
     blink_frequency: float = 0.0  # 闪烁频率 (Hz)
 
 
 # 默认 HSV 颜色范围
 DEFAULT_COLOR_RANGES = {
     LightColor.RED: [
-        ColorRange((0, 100, 100), (10, 255, 255)),    # 红色范围1
-        ColorRange((160, 100, 100), (180, 255, 255))  # 红色范围2
+        ColorRange((0, 100, 100), (10, 255, 255)),  # 红色范围1
+        ColorRange((160, 100, 100), (180, 255, 255)),  # 红色范围2
     ],
-    LightColor.YELLOW: [
-        ColorRange((15, 100, 100), (35, 255, 255))
-    ],
-    LightColor.ORANGE: [
-        ColorRange((10, 100, 100), (20, 255, 255))
-    ],
-    LightColor.GREEN: [
-        ColorRange((35, 100, 100), (85, 255, 255))
-    ],
-    LightColor.BLUE: [
-        ColorRange((85, 100, 100), (130, 255, 255))
-    ],
-    LightColor.WHITE: [
-        ColorRange((0, 0, 200), (180, 30, 255))
-    ]
+    LightColor.YELLOW: [ColorRange((15, 100, 100), (35, 255, 255))],
+    LightColor.ORANGE: [ColorRange((10, 100, 100), (20, 255, 255))],
+    LightColor.GREEN: [ColorRange((35, 100, 100), (85, 255, 255))],
+    LightColor.BLUE: [ColorRange((85, 100, 100), (130, 255, 255))],
+    LightColor.WHITE: [ColorRange((0, 0, 200), (180, 30, 255))],
 }
 
 
@@ -158,7 +153,10 @@ class LightRecognizer:
         position, area = self._find_light_position(mask)
 
         # 确定状态（亮/灭）
-        is_on = brightness > self.config.brightness_threshold and area >= self.config.min_area
+        is_on = (
+            brightness > self.config.brightness_threshold
+            and area >= self.config.min_area
+        )
 
         # 更新历史记录用于闪烁检测
         self._history.append(is_on)
@@ -176,13 +174,11 @@ class LightRecognizer:
             confidence=confidence,
             position=position,
             area=area,
-            blink_frequency=blink_freq
+            blink_frequency=blink_freq,
         )
 
     def detect_multiple(
-        self,
-        image: np.ndarray,
-        min_distance: int = 30
+        self, image: np.ndarray, min_distance: int = 30
     ) -> List[LightResult]:
         """
         检测图像中的多个指示灯
@@ -223,8 +219,8 @@ class LightRecognizer:
                         for r in results:
                             if r.position:
                                 dist = np.sqrt(
-                                    (cx - r.position[0])**2 +
-                                    (cy - r.position[1])**2
+                                    (cx - r.position[0]) ** 2
+                                    + (cy - r.position[1]) ** 2
                                 )
                                 if dist < min_distance:
                                     too_close = True
@@ -235,18 +231,23 @@ class LightRecognizer:
                             light_mask = np.zeros(mask.shape, dtype=np.uint8)
                             cv2.drawContours(light_mask, [contour], -1, 255, -1)
                             brightness = cv2.mean(
-                                cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY),
-                                mask=light_mask
+                                cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY), mask=light_mask
                             )[0]
 
-                            results.append(LightResult(
-                                color=color,
-                                state=LightState.ON if brightness > self.config.brightness_threshold else LightState.OFF,
-                                brightness=brightness,
-                                confidence=min(1.0, area / 500),
-                                position=(cx, cy),
-                                area=int(area)
-                            ))
+                            results.append(
+                                LightResult(
+                                    color=color,
+                                    state=(
+                                        LightState.ON
+                                        if brightness > self.config.brightness_threshold
+                                        else LightState.OFF
+                                    ),
+                                    brightness=brightness,
+                                    confidence=min(1.0, area / 500),
+                                    position=(cx, cy),
+                                    area=int(area),
+                                )
+                            )
 
         return results
 
@@ -262,16 +263,11 @@ class LightRecognizer:
         """
         results = self.detect_multiple(image)
 
-        andon = {
-            "red": None,
-            "yellow": None,
-            "green": None
-        }
+        andon = {"red": None, "yellow": None, "green": None}
 
         # 按垂直位置排序（假设红在上，绿在下）
         results_sorted = sorted(
-            results,
-            key=lambda r: r.position[1] if r.position else 0
+            results, key=lambda r: r.position[1] if r.position else 0
         )
 
         for result in results_sorted:
@@ -283,8 +279,7 @@ class LightRecognizer:
         for color in ["red", "yellow", "green"]:
             if andon[color] is None:
                 andon[color] = LightResult(
-                    color=LightColor(color),
-                    state=LightState.OFF
+                    color=LightColor(color), state=LightState.OFF
                 )
 
         return andon
@@ -293,13 +288,10 @@ class LightRecognizer:
         """提取感兴趣区域"""
         if self.config.region:
             x, y, w, h = self.config.region
-            return image[y:y+h, x:x+w]
+            return image[y : y + h, x : x + w]
         return image
 
-    def _detect_color(
-        self,
-        image: np.ndarray
-    ) -> Tuple[LightColor, float, np.ndarray]:
+    def _detect_color(self, image: np.ndarray) -> Tuple[LightColor, float, np.ndarray]:
         """
         检测主要颜色
 
@@ -334,9 +326,7 @@ class LightRecognizer:
         return best_color, overall_brightness, best_mask
 
     def _create_color_mask(
-        self,
-        hsv: np.ndarray,
-        ranges: List[ColorRange]
+        self, hsv: np.ndarray, ranges: List[ColorRange]
     ) -> np.ndarray:
         """创建颜色掩码"""
         mask = np.zeros(hsv.shape[:2], dtype=np.uint8)
@@ -349,8 +339,7 @@ class LightRecognizer:
         return mask
 
     def _find_light_position(
-        self,
-        mask: np.ndarray
+        self, mask: np.ndarray
     ) -> Tuple[Optional[Tuple[int, int]], int]:
         """
         找到指示灯位置
@@ -358,9 +347,7 @@ class LightRecognizer:
         Returns:
             (中心位置, 面积)
         """
-        contours, _ = cv2.findContours(
-            mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         if not contours:
             return None, 0
@@ -417,10 +404,7 @@ class LightRecognizer:
             return LightState.OFF, 0.0
 
     def _calculate_confidence(
-        self,
-        brightness: float,
-        area: int,
-        mask: np.ndarray
+        self, brightness: float, area: int, mask: np.ndarray
     ) -> float:
         """计算识别置信度"""
         # 基于亮度的置信度
@@ -463,7 +447,7 @@ class LightRecognizer:
             LightColor.BLUE: (255, 0, 0),
             LightColor.WHITE: (255, 255, 255),
             LightColor.ORANGE: (0, 165, 255),
-            LightColor.UNKNOWN: (128, 128, 128)
+            LightColor.UNKNOWN: (128, 128, 128),
         }
 
         for result in results:
@@ -477,9 +461,13 @@ class LightRecognizer:
                 # 绘制状态文字
                 state_text = f"{result.color.value}: {result.state.value}"
                 cv2.putText(
-                    output, state_text,
+                    output,
+                    state_text,
                     (result.position[0] - 30, result.position[1] - radius - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    color,
+                    1,
                 )
 
         return output
@@ -558,13 +546,13 @@ class AndonMonitor:
             "andon": {
                 "red": andon["red"].state.value,
                 "yellow": andon["yellow"].state.value,
-                "green": andon["green"].state.value
+                "green": andon["green"].state.value,
             },
             "runtime": self._running_time,
             "idle_time": self._idle_time,
             "fault_time": self._fault_time,
             "total_time": total_time,
-            "availability": availability
+            "availability": availability,
         }
 
     def reset(self):
@@ -577,8 +565,7 @@ class AndonMonitor:
 
 
 def detect_light(
-    image: np.ndarray,
-    region: Optional[Tuple[int, int, int, int]] = None
+    image: np.ndarray, region: Optional[Tuple[int, int, int, int]] = None
 ) -> LightResult:
     """
     便捷函数：检测指示灯
@@ -607,7 +594,4 @@ def detect_andon(image: np.ndarray) -> Dict[str, str]:
     """
     recognizer = LightRecognizer()
     andon = recognizer.detect_andon(image)
-    return {
-        color: result.state.value
-        for color, result in andon.items()
-    }
+    return {color: result.state.value for color, result in andon.items()}

@@ -2,7 +2,6 @@
 滤波模块单元测试
 """
 
-import pytest
 import numpy as np
 
 from retrosight.preprocessing.filter import (
@@ -274,11 +273,7 @@ class TestCompositeFilter:
 
     def test_chained_filters(self):
         """测试链式滤波器"""
-        cf = (
-            CompositeFilter()
-            .add_outlier_filter(threshold=3.0)
-            .add_kalman_filter()
-        )
+        cf = CompositeFilter().add_outlier_filter(threshold=3.0).add_kalman_filter()
 
         # 应该能正常处理数据
         result = cf.filter(100.0)
@@ -340,12 +335,7 @@ class TestFilterConfig:
 
     def test_custom_values(self):
         """测试自定义值"""
-        config = FilterConfig(
-            window_size=10,
-            alpha=0.5,
-            min_value=0.0,
-            max_value=100.0
-        )
+        config = FilterConfig(window_size=10, alpha=0.5, min_value=0.0, max_value=100.0)
         assert config.window_size == 10
         assert config.alpha == 0.5
         assert config.min_value == 0.0

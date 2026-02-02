@@ -24,17 +24,19 @@ logger = logging.getLogger(__name__)
 
 class EnhancementMode(Enum):
     """增强模式"""
-    NONE = "none"                 # 不增强
-    AUTO = "auto"                 # 自动选择
-    LOW_LIGHT = "low_light"       # 低光照增强
+
+    NONE = "none"  # 不增强
+    AUTO = "auto"  # 自动选择
+    LOW_LIGHT = "low_light"  # 低光照增强
     HIGH_CONTRAST = "high_contrast"  # 高对比度
-    ANTI_GLARE = "anti_glare"     # 去反光
-    DENOISE = "denoise"           # 去噪
+    ANTI_GLARE = "anti_glare"  # 去反光
+    DENOISE = "denoise"  # 去噪
 
 
 @dataclass
 class EnhancementConfig:
     """增强配置"""
+
     # 增强模式
     mode: EnhancementMode = EnhancementMode.AUTO
     # CLAHE 对比度限制
@@ -85,12 +87,10 @@ class ImageEnhancer:
             config: 增强配置
         """
         self.config = config or EnhancementConfig()
-        self._frame_buffer: Deque[np.ndarray] = deque(
-            maxlen=self.config.fusion_frames
-        )
+        self._frame_buffer: Deque[np.ndarray] = deque(maxlen=self.config.fusion_frames)
         self._clahe = cv2.createCLAHE(
             clipLimit=self.config.clahe_clip_limit,
-            tileGridSize=self.config.clahe_grid_size
+            tileGridSize=self.config.clahe_grid_size,
         )
 
     def enhance(self, image: np.ndarray) -> np.ndarray:
@@ -147,9 +147,7 @@ class ImageEnhancer:
         std_brightness = np.std(gray)
 
         # 检测是否有反光
-        has_glare = np.sum(gray > self.config.glare_threshold) > (
-            gray.size * 0.01
-        )
+        has_glare = np.sum(gray > self.config.glare_threshold) > (gray.size * 0.01)
 
         result = image.copy()
 
@@ -175,13 +173,13 @@ class ImageEnhancer:
         """低光照增强"""
         # 转换到 LAB 色彩空间
         lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-        l, a, b = cv2.split(lab)
+        lum, a, b = cv2.split(lab)
 
         # 对亮度通道应用 CLAHE
-        l_enhanced = self._clahe.apply(l)
+        lum_enhanced = self._clahe.apply(lum)
 
         # 合并通道
-        lab_enhanced = cv2.merge([l_enhanced, a, b])
+        lab_enhanced = cv2.merge([lum_enhanced, a, b])
 
         # 转回 BGR
         result = cv2.cvtColor(lab_enhanced, cv2.COLOR_LAB2BGR)
@@ -196,13 +194,13 @@ class ImageEnhancer:
         """对比度增强"""
         # 使用 CLAHE 增强对比度
         lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-        l, a, b = cv2.split(lab)
+        lum, a, b = cv2.split(lab)
 
         # 增强亮度通道
-        l_enhanced = self._clahe.apply(l)
+        lum_enhanced = self._clahe.apply(lum)
 
         # 合并
-        lab_enhanced = cv2.merge([l_enhanced, a, b])
+        lab_enhanced = cv2.merge([lum_enhanced, a, b])
         result = cv2.cvtColor(lab_enhanced, cv2.COLOR_LAB2BGR)
 
         # 可选: 锐化
@@ -224,10 +222,7 @@ class ImageEnhancer:
 
         # 检测反光区域（高亮点）
         _, glare_mask = cv2.threshold(
-            gray,
-            self.config.glare_threshold,
-            255,
-            cv2.THRESH_BINARY
+            gray, self.config.glare_threshold, 255, cv2.THRESH_BINARY
         )
 
         # 膨胀反光区域，确保完全覆盖
@@ -236,10 +231,7 @@ class ImageEnhancer:
 
         # 使用图像修复填充反光区域
         result = cv2.inpaint(
-            image,
-            glare_mask,
-            self.config.glare_inpaint_radius,
-            cv2.INPAINT_TELEA
+            image, glare_mask, self.config.glare_inpaint_radius, cv2.INPAINT_TELEA
         )
 
         return result
@@ -254,15 +246,11 @@ class ImageEnhancer:
                 self.config.denoise_strength,
                 self.config.denoise_strength,
                 7,
-                21
+                21,
             )
         else:
             result = cv2.fastNlMeansDenoising(
-                image,
-                None,
-                self.config.denoise_strength,
-                7,
-                21
+                image, None, self.config.denoise_strength, 7, 21
             )
 
         return result
@@ -276,21 +264,16 @@ class ImageEnhancer:
             1 + self.config.sharpen_strength,
             gaussian,
             -self.config.sharpen_strength,
-            0
+            0,
         )
         return sharpened
 
-    def _apply_gamma(
-        self,
-        image: np.ndarray,
-        gamma: float
-    ) -> np.ndarray:
+    def _apply_gamma(self, image: np.ndarray, gamma: float) -> np.ndarray:
         """应用 Gamma 校正"""
         inv_gamma = 1.0 / gamma
-        table = np.array([
-            ((i / 255.0) ** inv_gamma) * 255
-            for i in np.arange(0, 256)
-        ]).astype("uint8")
+        table = np.array(
+            [((i / 255.0) ** inv_gamma) * 255 for i in np.arange(0, 256)]
+        ).astype("uint8")
 
         return cv2.LUT(image, table)
 
@@ -310,10 +293,7 @@ class ImageEnhancer:
         frames = [f.astype(np.float32) for f in self._frame_buffer]
 
         # 加权平均（最新帧权重更高）
-        weights = np.array([
-            0.5 ** (len(frames) - 1 - i)
-            for i in range(len(frames))
-        ])
+        weights = np.array([0.5 ** (len(frames) - 1 - i) for i in range(len(frames))])
         weights = weights / np.sum(weights)
 
         result = np.zeros_like(frames[0])
@@ -350,11 +330,7 @@ class GlareRemover:
     ```
     """
 
-    def __init__(
-        self,
-        glare_threshold: int = 240,
-        inpaint_radius: int = 5
-    ):
+    def __init__(self, glare_threshold: int = 240, inpaint_radius: int = 5):
         """
         初始化去反光处理器
 
@@ -383,12 +359,7 @@ class GlareRemover:
             return image
 
         # 使用图像修复
-        result = cv2.inpaint(
-            image,
-            glare_mask,
-            self.inpaint_radius,
-            cv2.INPAINT_TELEA
-        )
+        result = cv2.inpaint(image, glare_mask, self.inpaint_radius, cv2.INPAINT_TELEA)
 
         return result
 
@@ -419,8 +390,7 @@ class GlareRemover:
         # 确保尺寸匹配
         if image.shape != self._background.shape:
             self._background = cv2.resize(
-                self._background,
-                (image.shape[1], image.shape[0])
+                self._background, (image.shape[1], image.shape[0])
             )
 
         # 计算差异
@@ -432,9 +402,7 @@ class GlareRemover:
         _, bright_mask = cv2.threshold(
             gray, self.glare_threshold, 255, cv2.THRESH_BINARY
         )
-        _, diff_mask = cv2.threshold(
-            diff_gray, 30, 255, cv2.THRESH_BINARY
-        )
+        _, diff_mask = cv2.threshold(diff_gray, 30, 255, cv2.THRESH_BINARY)
 
         # 反光区域 = 高亮度 & 与背景差异大
         glare_mask = cv2.bitwise_and(bright_mask, diff_mask)
@@ -449,10 +417,7 @@ class GlareRemover:
 
         return result
 
-    def multi_angle_fusion(
-        self,
-        images: List[np.ndarray]
-    ) -> np.ndarray:
+    def multi_angle_fusion(self, images: List[np.ndarray]) -> np.ndarray:
         """
         多角度图像融合
 
@@ -491,7 +456,7 @@ class GlareRemover:
         # 构建结果图像
         result = np.zeros_like(aligned_images[0])
         for i in range(len(aligned_images)):
-            mask = (min_indices == i)
+            mask = min_indices == i
             for c in range(3):
                 result[:, :, c][mask] = aligned_images[i][:, :, c][mask]
 
@@ -502,12 +467,7 @@ class GlareRemover:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
         # 高亮区域
-        _, mask = cv2.threshold(
-            gray,
-            self.glare_threshold,
-            255,
-            cv2.THRESH_BINARY
-        )
+        _, mask = cv2.threshold(gray, self.glare_threshold, 255, cv2.THRESH_BINARY)
 
         # 膨胀确保完全覆盖
         kernel = np.ones((5, 5), np.uint8)
@@ -534,11 +494,7 @@ class MultiFrameFusion:
     ```
     """
 
-    def __init__(
-        self,
-        num_frames: int = 5,
-        method: str = "average"
-    ):
+    def __init__(self, num_frames: int = 5, method: str = "average"):
         """
         初始化多帧融合器
 
@@ -629,8 +585,7 @@ class MultiFrameFusion:
 
 
 def enhance_image(
-    image: np.ndarray,
-    mode: EnhancementMode = EnhancementMode.AUTO
+    image: np.ndarray, mode: EnhancementMode = EnhancementMode.AUTO
 ) -> np.ndarray:
     """
     便捷函数：增强图像
@@ -647,10 +602,7 @@ def enhance_image(
     return enhancer.enhance(image)
 
 
-def remove_glare(
-    image: np.ndarray,
-    threshold: int = 240
-) -> np.ndarray:
+def remove_glare(image: np.ndarray, threshold: int = 240) -> np.ndarray:
     """
     便捷函数：去除反光
 
@@ -665,10 +617,7 @@ def remove_glare(
     return remover.remove(image)
 
 
-def denoise_image(
-    image: np.ndarray,
-    strength: int = 10
-) -> np.ndarray:
+def denoise_image(image: np.ndarray, strength: int = 10) -> np.ndarray:
     """
     便捷函数：去噪
 
@@ -679,9 +628,6 @@ def denoise_image(
     Returns:
         去噪后的图像
     """
-    config = EnhancementConfig(
-        mode=EnhancementMode.DENOISE,
-        denoise_strength=strength
-    )
+    config = EnhancementConfig(mode=EnhancementMode.DENOISE, denoise_strength=strength)
     enhancer = ImageEnhancer(config)
     return enhancer.enhance(image)

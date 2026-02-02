@@ -23,47 +23,52 @@ logger = logging.getLogger(__name__)
 
 class GaugeType(Enum):
     """仪表类型"""
-    CIRCULAR = "circular"       # 圆形表盘
-    SEMICIRCLE = "semicircle"   # 半圆表盘
-    ARC = "arc"                 # 扇形表盘
-    LINEAR = "linear"           # 线性表盘
+
+    CIRCULAR = "circular"  # 圆形表盘
+    SEMICIRCLE = "semicircle"  # 半圆表盘
+    ARC = "arc"  # 扇形表盘
+    LINEAR = "linear"  # 线性表盘
 
 
 @dataclass
 class GaugeConfig:
     """仪表配置"""
+
     gauge_type: GaugeType = GaugeType.CIRCULAR
-    center: Optional[Tuple[int, int]] = None     # 表盘中心点
-    radius: Optional[int] = None                  # 表盘半径
-    min_angle: float = 225.0      # 最小值对应角度（度，12点钟为0，顺时针）
-    max_angle: float = -45.0      # 最大值对应角度
-    min_value: float = 0.0        # 最小刻度值
-    max_value: float = 100.0      # 最大刻度值
-    unit: str = ""                # 单位
-    pointer_color: str = "dark"   # 指针颜色 ("dark", "light", "red")
+    center: Optional[Tuple[int, int]] = None  # 表盘中心点
+    radius: Optional[int] = None  # 表盘半径
+    min_angle: float = 225.0  # 最小值对应角度（度，12点钟为0，顺时针）
+    max_angle: float = -45.0  # 最大值对应角度
+    min_value: float = 0.0  # 最小刻度值
+    max_value: float = 100.0  # 最大刻度值
+    unit: str = ""  # 单位
+    pointer_color: str = "dark"  # 指针颜色 ("dark", "light", "red")
 
 
 @dataclass
 class PointerResult:
     """指针识别结果"""
-    angle: float                  # 检测到的角度（度）
-    value: float                  # 映射后的数值
-    confidence: float = 0.0       # 置信度
+
+    angle: float  # 检测到的角度（度）
+    value: float  # 映射后的数值
+    confidence: float = 0.0  # 置信度
     center: Optional[Tuple[int, int]] = None  # 检测到的中心点
-    tip: Optional[Tuple[int, int]] = None     # 指针尖端位置
+    tip: Optional[Tuple[int, int]] = None  # 指针尖端位置
     raw_lines: List = field(default_factory=list)  # 原始检测到的线段
 
 
 @dataclass
 class CalibrationPoint:
     """校准点"""
-    angle: float      # 角度（度）
-    value: float      # 对应的实际值
+
+    angle: float  # 角度（度）
+    value: float  # 对应的实际值
 
 
 @dataclass
 class CalibrationData:
     """校准数据"""
+
     points: List[CalibrationPoint] = field(default_factory=list)
     method: str = "linear"  # "linear" 或 "polynomial"
     coefficients: Optional[List[float]] = None  # 多项式系数（用于非线性校准）
@@ -77,7 +82,7 @@ class CalibrationData:
         return {
             "points": [{"angle": p.angle, "value": p.value} for p in self.points],
             "method": self.method,
-            "coefficients": self.coefficients
+            "coefficients": self.coefficients,
         }
 
     @classmethod
@@ -87,7 +92,7 @@ class CalibrationData:
         return cls(
             points=points,
             method=data.get("method", "linear"),
-            coefficients=data.get("coefficients")
+            coefficients=data.get("coefficients"),
         )
 
 
@@ -160,10 +165,12 @@ class PointerRecognizer:
             confidence=confidence,
             center=self.config.center,
             tip=tip,
-            raw_lines=lines
+            raw_lines=lines,
         )
 
-    def recognize_multi(self, image: np.ndarray, num_pointers: int = 2) -> List[PointerResult]:
+    def recognize_multi(
+        self, image: np.ndarray, num_pointers: int = 2
+    ) -> List[PointerResult]:
         """
         识别多个指针（如时钟的时分秒针）
 
@@ -193,14 +200,16 @@ class PointerRecognizer:
         for group in pointer_lines:
             angle, tip = self._calculate_angle_from_lines(group)
             value = self._angle_to_value(angle)
-            results.append(PointerResult(
-                angle=angle,
-                value=value,
-                confidence=0.8,
-                center=self.config.center,
-                tip=tip,
-                raw_lines=group
-            ))
+            results.append(
+                PointerResult(
+                    angle=angle,
+                    value=value,
+                    confidence=0.8,
+                    center=self.config.center,
+                    tip=tip,
+                    raw_lines=group,
+                )
+            )
 
         return results
 
@@ -222,7 +231,9 @@ class PointerRecognizer:
         # 根据指针颜色选择处理方式
         if self.config.pointer_color == "dark":
             # 深色指针：反转后检测
-            _, binary = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+            _, binary = cv2.threshold(
+                blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+            )
         elif self.config.pointer_color == "red":
             # 红色指针：提取红色通道
             if len(image.shape) == 3:
@@ -236,10 +247,14 @@ class PointerRecognizer:
                 mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
                 binary = cv2.bitwise_or(mask1, mask2)
             else:
-                _, binary = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                _, binary = cv2.threshold(
+                    blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+                )
         else:
             # 浅色指针
-            _, binary = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            _, binary = cv2.threshold(
+                blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
+            )
 
         # 形态学处理
         kernel = np.ones((3, 3), np.uint8)
@@ -247,7 +262,9 @@ class PointerRecognizer:
 
         return binary
 
-    def _detect_dial(self, image: np.ndarray) -> Tuple[Optional[Tuple[int, int]], Optional[int]]:
+    def _detect_dial(
+        self, image: np.ndarray
+    ) -> Tuple[Optional[Tuple[int, int]], Optional[int]]:
         """
         自动检测表盘中心和半径
 
@@ -271,7 +288,7 @@ class PointerRecognizer:
             param1=100,
             param2=30,
             minRadius=30,
-            maxRadius=min(image.shape[:2]) // 2
+            maxRadius=min(image.shape[:2]) // 2,
         )
 
         if circles is not None:
@@ -298,12 +315,14 @@ class PointerRecognizer:
             theta=np.pi / 180,
             threshold=30,
             minLineLength=20,
-            maxLineGap=10
+            maxLineGap=10,
         )
 
         return lines if lines is not None else []
 
-    def _detect_pointer(self, binary: np.ndarray) -> Tuple[float, float, Optional[Tuple[int, int]], List]:
+    def _detect_pointer(
+        self, binary: np.ndarray
+    ) -> Tuple[float, float, Optional[Tuple[int, int]], List]:
         """
         检测指针角度
 
@@ -341,8 +360,7 @@ class PointerRecognizer:
         return angle, confidence, tip, valid_lines
 
     def _calculate_angle_from_lines(
-        self,
-        lines: List
+        self, lines: List
     ) -> Tuple[float, Optional[Tuple[int, int]]]:
         """
         从线段计算指针角度
@@ -364,8 +382,8 @@ class PointerRecognizer:
                 x1, y1, x2, y2 = line
 
             # 确定哪个端点是指针尖端（距离中心更远的）
-            dist1 = math.sqrt((x1 - center[0])**2 + (y1 - center[1])**2)
-            dist2 = math.sqrt((x2 - center[0])**2 + (y2 - center[1])**2)
+            dist1 = math.sqrt((x1 - center[0]) ** 2 + (y1 - center[1]) ** 2)
+            dist2 = math.sqrt((x2 - center[0]) ** 2 + (y2 - center[1]) ** 2)
 
             if dist1 > dist2:
                 tip_x, tip_y = x1, y1
@@ -428,7 +446,9 @@ class PointerRecognizer:
         ratio = current_pos / angle_range if angle_range != 0 else 0
         ratio = max(0, min(1, ratio))  # 限制在 0-1 范围
 
-        value = self.config.min_value + ratio * (self.config.max_value - self.config.min_value)
+        value = self.config.min_value + ratio * (
+            self.config.max_value - self.config.min_value
+        )
         return value
 
     def _calibrated_angle_to_value(self, angle: float) -> float:
@@ -458,10 +478,7 @@ class PointerRecognizer:
         return 0.0
 
     def _point_line_distance(
-        self,
-        point: Tuple[int, int],
-        line_p1: Tuple[int, int],
-        line_p2: Tuple[int, int]
+        self, point: Tuple[int, int], line_p1: Tuple[int, int], line_p2: Tuple[int, int]
     ) -> float:
         """计算点到线段的距离"""
         px, py = point
@@ -469,9 +486,9 @@ class PointerRecognizer:
         x2, y2 = line_p2
 
         # 线段长度
-        line_len = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+        line_len = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
         if line_len == 0:
-            return math.sqrt((px - x1)**2 + (py - y1)**2)
+            return math.sqrt((px - x1) ** 2 + (py - y1) ** 2)
 
         # 点到直线的距离
         dist = abs((y2 - y1) * px - (x2 - x1) * py + x2 * y1 - y2 * x1) / line_len
@@ -490,7 +507,7 @@ class PointerRecognizer:
         line_lengths = []
         for line in lines:
             x1, y1, x2, y2 = line[0]
-            length = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+            length = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
             line_lengths.append((length, line[0]))
 
         # 按长度排序
@@ -505,10 +522,7 @@ class PointerRecognizer:
         return [g for g in groups if g]
 
     def calibrate(
-        self,
-        image: np.ndarray,
-        known_value: float,
-        known_angle: Optional[float] = None
+        self, image: np.ndarray, known_value: float, known_angle: Optional[float] = None
     ):
         """
         使用已知值添加校准点
@@ -537,11 +551,7 @@ class PointerRecognizer:
         logger.info(f"校准点已添加: 角度 {known_angle:.1f}° 对应值 {known_value}")
 
     def calibrate_two_point(
-        self,
-        angle1: float,
-        value1: float,
-        angle2: float,
-        value2: float
+        self, angle1: float, value1: float, angle2: float, value2: float
     ):
         """
         两点校准（线性）
@@ -555,12 +565,14 @@ class PointerRecognizer:
         self.calibration = CalibrationData(
             points=[
                 CalibrationPoint(angle=angle1, value=value1),
-                CalibrationPoint(angle=angle2, value=value2)
+                CalibrationPoint(angle=angle2, value=value2),
             ],
-            method="linear"
+            method="linear",
         )
         self._compute_calibration()
-        logger.info(f"两点校准完成: ({angle1:.1f}°, {value1}) → ({angle2:.1f}°, {value2})")
+        logger.info(
+            f"两点校准完成: ({angle1:.1f}°, {value1}) → ({angle2:.1f}°, {value2})"
+        )
 
     def calibrate_three_point(
         self,
@@ -569,7 +581,7 @@ class PointerRecognizer:
         angle2: float,
         value2: float,
         angle3: float,
-        value3: float
+        value3: float,
     ):
         """
         三点校准（二次多项式，用于非线性刻度）
@@ -583,12 +595,12 @@ class PointerRecognizer:
             points=[
                 CalibrationPoint(angle=angle1, value=value1),
                 CalibrationPoint(angle=angle2, value=value2),
-                CalibrationPoint(angle=angle3, value=value3)
+                CalibrationPoint(angle=angle3, value=value3),
             ],
-            method="polynomial"
+            method="polynomial",
         )
         self._compute_calibration()
-        logger.info(f"三点校准完成: 非线性多项式拟合")
+        logger.info("三点校准完成: 非线性多项式拟合")
 
     def _compute_calibration(self):
         """计算校准系数"""
@@ -602,7 +614,11 @@ class PointerRecognizer:
         if len(points) == 2:
             # 线性校准: value = a * angle + b
             self.calibration.method = "linear"
-            a = (values[1] - values[0]) / (angles[1] - angles[0]) if angles[1] != angles[0] else 0
+            a = (
+                (values[1] - values[0]) / (angles[1] - angles[0])
+                if angles[1] != angles[0]
+                else 0
+            )
             b = values[0] - a * angles[0]
             self.calibration.coefficients = [a, b]
 
@@ -616,7 +632,11 @@ class PointerRecognizer:
             except Exception as e:
                 logger.warning(f"多项式拟合失败，回退到线性: {e}")
                 self.calibration.method = "linear"
-                a = (values[-1] - values[0]) / (angles[-1] - angles[0]) if angles[-1] != angles[0] else 0
+                a = (
+                    (values[-1] - values[0]) / (angles[-1] - angles[0])
+                    if angles[-1] != angles[0]
+                    else 0
+                )
                 b = values[0] - a * angles[0]
                 self.calibration.coefficients = [a, b]
 
@@ -647,8 +667,8 @@ class PointerRecognizer:
                 "max_angle": self.config.max_angle,
                 "min_value": self.config.min_value,
                 "max_value": self.config.max_value,
-                "unit": self.config.unit
-            }
+                "unit": self.config.unit,
+            },
         }
 
         with open(path, "w", encoding="utf-8") as f:
@@ -713,7 +733,9 @@ class PointerRecognizer:
 
             # 绘制表盘轮廓
             if self.config.radius:
-                cv2.circle(output, self.config.center, self.config.radius, (0, 255, 0), 2)
+                cv2.circle(
+                    output, self.config.center, self.config.radius, (0, 255, 0), 2
+                )
 
         # 绘制检测到的线段
         for line in result.raw_lines:
@@ -733,21 +755,13 @@ class PointerRecognizer:
 
         # 显示读数
         text = f"{result.value:.1f} {self.config.unit}"
-        cv2.putText(
-            output, text,
-            (10, 30),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1, (0, 255, 0), 2
-        )
+        cv2.putText(output, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         return output
 
 
 def recognize_gauge(
-    image: np.ndarray,
-    min_value: float = 0,
-    max_value: float = 100,
-    unit: str = ""
+    image: np.ndarray, min_value: float = 0, max_value: float = 100, unit: str = ""
 ) -> PointerResult:
     """
     便捷函数：识别仪表读数
@@ -761,10 +775,6 @@ def recognize_gauge(
     Returns:
         识别结果
     """
-    config = GaugeConfig(
-        min_value=min_value,
-        max_value=max_value,
-        unit=unit
-    )
+    config = GaugeConfig(min_value=min_value, max_value=max_value, unit=unit)
     recognizer = PointerRecognizer(config)
     return recognizer.recognize(image)

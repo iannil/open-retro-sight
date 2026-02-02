@@ -2,10 +2,7 @@
 指针识别模块单元测试
 """
 
-import pytest
 import numpy as np
-import math
-from unittest.mock import patch, MagicMock
 
 from retrosight.recognition.pointer import (
     PointerRecognizer,
@@ -42,11 +39,7 @@ class TestGaugeConfig:
     def test_custom_values(self):
         """测试自定义值"""
         config = GaugeConfig(
-            center=(100, 100),
-            radius=80,
-            min_value=0,
-            max_value=200,
-            unit="MPa"
+            center=(100, 100), radius=80, min_value=0, max_value=200, unit="MPa"
         )
         assert config.center == (100, 100)
         assert config.radius == 80
@@ -58,11 +51,7 @@ class TestPointerResult:
 
     def test_creation(self):
         """测试创建"""
-        result = PointerResult(
-            angle=135.0,
-            value=50.0,
-            confidence=0.9
-        )
+        result = PointerResult(angle=135.0, value=50.0, confidence=0.9)
         assert result.angle == 135.0
         assert result.value == 50.0
         assert result.confidence == 0.9
@@ -92,12 +81,7 @@ class TestPointerRecognizer:
 
     def test_angle_to_value_linear(self):
         """测试角度到数值的线性映射"""
-        config = GaugeConfig(
-            min_angle=0,
-            max_angle=180,
-            min_value=0,
-            max_value=100
-        )
+        config = GaugeConfig(min_angle=0, max_angle=180, min_value=0, max_value=100)
         recognizer = PointerRecognizer(config)
 
         # 中间角度应该对应中间值
@@ -166,12 +150,7 @@ class TestPointerRecognizer:
         recognizer = PointerRecognizer(config)
         image = np.zeros((200, 200, 3), dtype=np.uint8)
 
-        result = PointerResult(
-            angle=45,
-            value=25,
-            confidence=0.8,
-            tip=(150, 50)
-        )
+        result = PointerResult(angle=45, value=25, confidence=0.8, tip=(150, 50))
 
         output = recognizer.visualize(image, result)
         assert output.shape == image.shape
@@ -184,12 +163,7 @@ class TestRecognizeGauge:
         """测试便捷识别函数"""
         image = np.zeros((200, 200, 3), dtype=np.uint8)
 
-        result = recognize_gauge(
-            image,
-            min_value=0,
-            max_value=100,
-            unit="bar"
-        )
+        result = recognize_gauge(image, min_value=0, max_value=100, unit="bar")
 
         assert isinstance(result, PointerResult)
 
@@ -215,9 +189,9 @@ class TestPointerMath:
         recognizer = PointerRecognizer()
 
         lines = [
-            [np.array([0, 0, 100, 0])],   # 长度 100
-            [np.array([0, 0, 50, 0])],    # 长度 50
-            [np.array([0, 0, 25, 0])],    # 长度 25
+            [np.array([0, 0, 100, 0])],  # 长度 100
+            [np.array([0, 0, 50, 0])],  # 长度 50
+            [np.array([0, 0, 25, 0])],  # 长度 25
         ]
 
         groups = recognizer._group_lines_by_length(lines, 2)

@@ -12,13 +12,12 @@
 """
 
 import os
-import json
 import time
 import sqlite3
 import threading
 import logging
-from typing import Optional, Dict, Any, List, Callable, Generator
-from dataclasses import dataclass, asdict
+from typing import Optional, List, Callable
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
@@ -29,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 class Priority(Enum):
     """消息优先级"""
+
     LOW = 0
     NORMAL = 1
     HIGH = 2
@@ -38,18 +38,20 @@ class Priority(Enum):
 @dataclass
 class BufferConfig:
     """缓存配置"""
-    storage_path: str = "data/buffer.db"   # 存储路径
-    max_size_mb: float = 100.0             # 最大存储大小 (MB)
-    max_age_hours: int = 24                # 最大保留时间 (小时)
-    batch_size: int = 100                  # 批量发送大小
-    retry_interval: float = 5.0            # 重试间隔 (秒)
-    max_retries: int = 3                   # 最大重试次数
-    auto_cleanup: bool = True              # 自动清理过期数据
+
+    storage_path: str = "data/buffer.db"  # 存储路径
+    max_size_mb: float = 100.0  # 最大存储大小 (MB)
+    max_age_hours: int = 24  # 最大保留时间 (小时)
+    batch_size: int = 100  # 批量发送大小
+    retry_interval: float = 5.0  # 重试间隔 (秒)
+    max_retries: int = 3  # 最大重试次数
+    auto_cleanup: bool = True  # 自动清理过期数据
 
 
 @dataclass
 class BufferedMessage:
     """缓存消息"""
+
     id: Optional[int] = None
     topic: str = ""
     payload: str = ""
@@ -111,10 +113,7 @@ class PersistentBuffer:
         storage_path = Path(self.config.storage_path)
         storage_path.parent.mkdir(parents=True, exist_ok=True)
 
-        self._conn = sqlite3.connect(
-            str(storage_path),
-            check_same_thread=False
-        )
+        self._conn = sqlite3.connect(str(storage_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._create_tables()
 
@@ -130,7 +129,7 @@ class PersistentBuffer:
         """创建数据表"""
         with self._lock:
             cursor = self._conn.cursor()
-            cursor.execute('''
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS messages (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     topic TEXT NOT NULL,
@@ -141,11 +140,11 @@ class PersistentBuffer:
                     created_at TEXT NOT NULL,
                     sent_at TEXT
                 )
-            ''')
-            cursor.execute('''
+            """)
+            cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_priority_created
                 ON messages (priority DESC, created_at ASC)
-            ''')
+            """)
             self._conn.commit()
 
     def push(self, message: BufferedMessage) -> int:
@@ -160,17 +159,20 @@ class PersistentBuffer:
         """
         with self._lock:
             cursor = self._conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                """
                 INSERT INTO messages (topic, payload, priority, timestamp, retry_count, created_at)
                 VALUES (?, ?, ?, ?, ?, ?)
-            ''', (
-                message.topic,
-                message.payload,
-                message.priority.value,
-                message.timestamp,
-                message.retry_count,
-                message.created_at
-            ))
+            """,
+                (
+                    message.topic,
+                    message.payload,
+                    message.priority.value,
+                    message.timestamp,
+                    message.retry_count,
+                    message.created_at,
+                ),
+            )
             self._conn.commit()
             return cursor.lastrowid
 
@@ -188,17 +190,20 @@ class PersistentBuffer:
         with self._lock:
             cursor = self._conn.cursor()
             for msg in messages:
-                cursor.execute('''
+                cursor.execute(
+                    """
                     INSERT INTO messages (topic, payload, priority, timestamp, retry_count, created_at)
                     VALUES (?, ?, ?, ?, ?, ?)
-                ''', (
-                    msg.topic,
-                    msg.payload,
-                    msg.priority.value,
-                    msg.timestamp,
-                    msg.retry_count,
-                    msg.created_at
-                ))
+                """,
+                    (
+                        msg.topic,
+                        msg.payload,
+                        msg.priority.value,
+                        msg.timestamp,
+                        msg.retry_count,
+                        msg.created_at,
+                    ),
+                )
                 ids.append(cursor.lastrowid)
             self._conn.commit()
         return ids
@@ -227,25 +232,30 @@ class PersistentBuffer:
 
         with self._lock:
             cursor = self._conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT id, topic, payload, priority, timestamp, retry_count, created_at
                 FROM messages
                 WHERE sent_at IS NULL AND retry_count < ?
                 ORDER BY priority DESC, created_at ASC
                 LIMIT ?
-            ''', (self.config.max_retries, size))
+            """,
+                (self.config.max_retries, size),
+            )
 
             messages = []
             for row in cursor.fetchall():
-                messages.append(BufferedMessage(
-                    id=row['id'],
-                    topic=row['topic'],
-                    payload=row['payload'],
-                    priority=Priority(row['priority']),
-                    timestamp=row['timestamp'],
-                    retry_count=row['retry_count'],
-                    created_at=row['created_at']
-                ))
+                messages.append(
+                    BufferedMessage(
+                        id=row["id"],
+                        topic=row["topic"],
+                        payload=row["payload"],
+                        priority=Priority(row["priority"]),
+                        timestamp=row["timestamp"],
+                        retry_count=row["retry_count"],
+                        created_at=row["created_at"],
+                    )
+                )
 
             return messages
 
@@ -258,9 +268,12 @@ class PersistentBuffer:
         """
         with self._lock:
             cursor = self._conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                """
                 UPDATE messages SET sent_at = ? WHERE id = ?
-            ''', (datetime.utcnow().isoformat() + "Z", message_id))
+            """,
+                (datetime.utcnow().isoformat() + "Z", message_id),
+            )
             self._conn.commit()
 
     def mark_failed(self, message_id: int):
@@ -272,9 +285,12 @@ class PersistentBuffer:
         """
         with self._lock:
             cursor = self._conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                """
                 UPDATE messages SET retry_count = retry_count + 1 WHERE id = ?
-            ''', (message_id,))
+            """,
+                (message_id,),
+            )
             self._conn.commit()
 
     def delete(self, message_id: int):
@@ -286,14 +302,14 @@ class PersistentBuffer:
         """
         with self._lock:
             cursor = self._conn.cursor()
-            cursor.execute('DELETE FROM messages WHERE id = ?', (message_id,))
+            cursor.execute("DELETE FROM messages WHERE id = ?", (message_id,))
             self._conn.commit()
 
     def cleanup_sent(self):
         """清理已发送的消息"""
         with self._lock:
             cursor = self._conn.cursor()
-            cursor.execute('DELETE FROM messages WHERE sent_at IS NOT NULL')
+            cursor.execute("DELETE FROM messages WHERE sent_at IS NOT NULL")
             deleted = cursor.rowcount
             self._conn.commit()
             logger.info(f"清理已发送消息: {deleted} 条")
@@ -305,9 +321,12 @@ class PersistentBuffer:
 
         with self._lock:
             cursor = self._conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                """
                 DELETE FROM messages WHERE created_at < ?
-            ''', (cutoff_str,))
+            """,
+                (cutoff_str,),
+            )
             deleted = cursor.rowcount
             self._conn.commit()
 
@@ -318,9 +337,12 @@ class PersistentBuffer:
         """清理超过最大重试次数的消息"""
         with self._lock:
             cursor = self._conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                """
                 DELETE FROM messages WHERE retry_count >= ?
-            ''', (self.config.max_retries,))
+            """,
+                (self.config.max_retries,),
+            )
             deleted = cursor.rowcount
             self._conn.commit()
 
@@ -330,17 +352,20 @@ class PersistentBuffer:
     def vacuum(self):
         """压缩数据库"""
         with self._lock:
-            self._conn.execute('VACUUM')
+            self._conn.execute("VACUUM")
 
     @property
     def pending_count(self) -> int:
         """待发送消息数量"""
         with self._lock:
             cursor = self._conn.cursor()
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT COUNT(*) FROM messages
                 WHERE sent_at IS NULL AND retry_count < ?
-            ''', (self.config.max_retries,))
+            """,
+                (self.config.max_retries,),
+            )
             return cursor.fetchone()[0]
 
     @property
@@ -348,7 +373,7 @@ class PersistentBuffer:
         """总消息数量"""
         with self._lock:
             cursor = self._conn.cursor()
-            cursor.execute('SELECT COUNT(*) FROM messages')
+            cursor.execute("SELECT COUNT(*) FROM messages")
             return cursor.fetchone()[0]
 
     @property
@@ -398,7 +423,7 @@ class StoreAndForward:
     def __init__(
         self,
         send_func: Callable[[str, str], bool],
-        config: Optional[BufferConfig] = None
+        config: Optional[BufferConfig] = None,
     ):
         """
         初始化存储转发管理器
@@ -438,10 +463,7 @@ class StoreAndForward:
         logger.info("存储转发已停止")
 
     def send(
-        self,
-        topic: str,
-        payload: str,
-        priority: Priority = Priority.NORMAL
+        self, topic: str, payload: str, priority: Priority = Priority.NORMAL
     ) -> bool:
         """
         发送消息（自动处理失败情况）
@@ -463,11 +485,7 @@ class StoreAndForward:
                 self._online = False
 
         # 发送失败，存入缓存
-        msg = BufferedMessage(
-            topic=topic,
-            payload=payload,
-            priority=priority
-        )
+        msg = BufferedMessage(topic=topic, payload=payload, priority=priority)
         self._buffer.push(msg)
         return False
 
@@ -579,9 +597,7 @@ class MemoryBuffer:
 
             self._queue.append(message)
             # 按优先级和时间排序
-            self._queue.sort(
-                key=lambda m: (-m.priority.value, m.created_at)
-            )
+            self._queue.sort(key=lambda m: (-m.priority.value, m.created_at))
             return True
 
     def pop(self) -> Optional[BufferedMessage]:

@@ -5,13 +5,8 @@
 - 图像采集 → 预处理 → 识别 → 输出
 """
 
-import pytest
 import numpy as np
-import cv2
 import time
-from unittest.mock import Mock, patch, MagicMock
-from dataclasses import dataclass
-from typing import List, Optional, Dict, Any
 
 
 class TestFullPipelineOCR:
@@ -20,7 +15,10 @@ class TestFullPipelineOCR:
     def test_image_capture_to_mqtt_output(self, sample_digital_image):
         """测试图像采集到 MQTT 输出完整流程"""
         from retrosight.recognition.ocr import SimpleOCR
-        from retrosight.preprocessing.enhancement import ImageEnhancer, EnhancementConfig
+        from retrosight.preprocessing.enhancement import (
+            ImageEnhancer,
+            EnhancementConfig,
+        )
         from retrosight.preprocessing.filter import create_default_filter
 
         # Step 1: 图像采集（使用 fixture 模拟）
@@ -52,7 +50,7 @@ class TestFullPipelineOCR:
             "raw_text": result.text,
             "filtered_value": filtered_value,
             "confidence": result.confidence,
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ")
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
 
         assert "device_id" in output_message
@@ -85,12 +83,14 @@ class TestFullPipelineOCR:
                 value = 0.0
             filtered_value = filter_obj.filter(value)
 
-            results.append({
-                "frame": i,
-                "raw": result.text,
-                "filtered": filtered_value,
-                "confidence": result.confidence
-            })
+            results.append(
+                {
+                    "frame": i,
+                    "raw": result.text,
+                    "filtered": filtered_value,
+                    "confidence": result.confidence,
+                }
+            )
 
         assert len(results) == frame_count
 
@@ -110,19 +110,13 @@ class TestFullPipelinePointer:
         h, w = captured_image.shape[:2]
         transform = PerspectiveTransform()
         # 设置轻微校正
-        src_points = [
-            (5, 5), (w - 5, 5), (w - 5, h - 5), (5, h - 5)
-        ]
-        transform.set_source_points(src_points, w, h)
+        src_points = [(5, 5), (w - 5, 5), (w - 5, h - 5), (5, h - 5)]
+        transform.set_source_points(src_points, (w, h))
         corrected_image = transform.apply(captured_image)
 
         # Step 3: 指针识别
         config = GaugeConfig(
-            min_value=0,
-            max_value=100,
-            min_angle=225,
-            max_angle=-45,
-            unit="MPa"
+            min_value=0, max_value=100, min_angle=225, max_angle=-45, unit="MPa"
         )
         recognizer = PointerRecognizer(config)
         result = recognizer.recognize(corrected_image)
@@ -139,26 +133,24 @@ class TestFullPipelinePointer:
             register_confidence = 0
 
         output = {
-            "registers": {
-                0: register_value,
-                1: register_confidence
-            },
+            "registers": {0: register_value, 1: register_confidence},
             "angle": result.angle,
-            "value": result.value
+            "value": result.value,
         }
 
         assert "registers" in output
         assert 0 <= output["registers"][0] <= 65535
 
-    def test_calibrated_pointer_pipeline(self, sample_gauge_image, temp_calibration_file):
+    def test_calibrated_pointer_pipeline(
+        self, sample_gauge_image, temp_calibration_file
+    ):
         """测试带校准的指针识别流程"""
         from retrosight.recognition.pointer import PointerRecognizer, GaugeConfig
 
         # 创建识别器并校准
         recognizer = PointerRecognizer(GaugeConfig())
         recognizer.calibrate_two_point(
-            angle1=45.0, value1=0.0,
-            angle2=315.0, value2=100.0
+            angle1=45.0, value1=0.0, angle2=315.0, value2=100.0
         )
 
         # 保存校准
@@ -178,14 +170,16 @@ class TestFullPipelinePointer:
 class TestFullPipelineLight:
     """指示灯识别完整流程测试"""
 
-    def test_light_monitoring_pipeline(self, sample_light_image_green, sample_light_image_red):
+    def test_light_monitoring_pipeline(
+        self, sample_light_image_green, sample_light_image_red
+    ):
         """测试指示灯监控流程"""
-        from retrosight.recognition.light import LightRecognizer, LightConfig, LightColor
-
-        config = LightConfig(
-            region=(20, 20, 60, 60),
-            expected_colors=[LightColor.GREEN, LightColor.RED]
+        from retrosight.recognition.light import (
+            LightRecognizer,
+            LightConfig,
         )
+
+        config = LightConfig(region=(20, 20, 60, 60))
         recognizer = LightRecognizer(config)
 
         # 模拟状态变化监控
@@ -193,19 +187,15 @@ class TestFullPipelineLight:
 
         # 初始状态：绿灯
         result = recognizer.detect(sample_light_image_green)
-        states.append({
-            "time": 0,
-            "color": str(result.color),
-            "state": str(result.state)
-        })
+        states.append(
+            {"time": 0, "color": str(result.color), "state": str(result.state)}
+        )
 
         # 状态变化：红灯
         result = recognizer.detect(sample_light_image_red)
-        states.append({
-            "time": 1,
-            "color": str(result.color),
-            "state": str(result.state)
-        })
+        states.append(
+            {"time": 1, "color": str(result.color), "state": str(result.state)}
+        )
 
         assert len(states) == 2
         # 验证检测到了状态变化
@@ -215,9 +205,15 @@ class TestFullPipelineLight:
 class TestFullPipelineSwitch:
     """开关识别完整流程测试"""
 
-    def test_switch_monitoring_pipeline(self, sample_switch_on_image, sample_switch_off_image):
+    def test_switch_monitoring_pipeline(
+        self, sample_switch_on_image, sample_switch_off_image
+    ):
         """测试开关监控流程"""
-        from retrosight.recognition.switch import SwitchRecognizer, SwitchConfig, SwitchType
+        from retrosight.recognition.switch import (
+            SwitchRecognizer,
+            SwitchConfig,
+            SwitchType,
+        )
 
         config = SwitchConfig(switch_type=SwitchType.TOGGLE)
         recognizer = SwitchRecognizer(config)
@@ -227,17 +223,11 @@ class TestFullPipelineSwitch:
 
         # ON 状态
         result_on = recognizer.recognize(sample_switch_on_image)
-        states.append({
-            "time": 0,
-            "state": str(result_on.state)
-        })
+        states.append({"time": 0, "state": str(result_on.state)})
 
         # OFF 状态
         result_off = recognizer.recognize(sample_switch_off_image)
-        states.append({
-            "time": 1,
-            "state": str(result_off.state)
-        })
+        states.append({"time": 1, "state": str(result_off.state)})
 
         assert len(states) == 2
 
@@ -246,14 +236,21 @@ class TestMultiDevicePipeline:
     """多设备流程测试"""
 
     def test_multi_device_aggregation(
-        self, sample_digital_image, sample_gauge_image,
-        sample_light_image_green, sample_switch_on_image
+        self,
+        sample_digital_image,
+        sample_gauge_image,
+        sample_light_image_green,
+        sample_switch_on_image,
     ):
         """测试多设备数据聚合"""
         from retrosight.recognition.ocr import SimpleOCR
         from retrosight.recognition.pointer import PointerRecognizer, GaugeConfig
         from retrosight.recognition.light import LightRecognizer, LightConfig
-        from retrosight.recognition.switch import SwitchRecognizer, SwitchConfig, SwitchType
+        from retrosight.recognition.switch import (
+            SwitchRecognizer,
+            SwitchConfig,
+            SwitchType,
+        )
 
         # 初始化所有识别器
         ocr = SimpleOCR()
@@ -273,21 +270,19 @@ class TestMultiDevicePipeline:
             "devices": {
                 "digital_display_1": {
                     "value": ocr_result.text,
-                    "confidence": ocr_result.confidence
+                    "confidence": ocr_result.confidence,
                 },
                 "gauge_1": {
                     "angle": pointer_result.angle,
                     "value": pointer_result.value,
-                    "confidence": pointer_result.confidence
+                    "confidence": pointer_result.confidence,
                 },
                 "light_1": {
                     "color": str(light_result.color),
-                    "state": str(light_result.state)
+                    "state": str(light_result.state),
                 },
-                "switch_1": {
-                    "state": str(switch_result.state)
-                }
-            }
+                "switch_1": {"state": str(switch_result.state)},
+            },
         }
 
         assert len(aggregated_data["devices"]) == 4
@@ -359,7 +354,7 @@ class TestPerformanceMetrics:
         metrics = {
             "total_frames": frame_count,
             "elapsed_time": elapsed_time,
-            "fps": fps
+            "fps": fps,
         }
 
         assert metrics["total_frames"] == frame_count
@@ -386,9 +381,8 @@ class TestPerformanceMetrics:
         metrics = {
             "avg_latency_ms": avg_latency,
             "max_latency_ms": max_latency,
-            "min_latency_ms": min_latency
+            "min_latency_ms": min_latency,
         }
 
         assert metrics["avg_latency_ms"] > 0
         assert metrics["max_latency_ms"] >= metrics["min_latency_ms"]
-

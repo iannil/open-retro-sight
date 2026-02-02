@@ -103,7 +103,7 @@ def sample_switch_off_image() -> np.ndarray:
 @pytest.fixture
 def temp_config_file() -> Generator[str, None, None]:
     """创建临时配置文件"""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         path = f.name
 
     yield path
@@ -115,7 +115,7 @@ def temp_config_file() -> Generator[str, None, None]:
 @pytest.fixture
 def temp_calibration_file() -> Generator[str, None, None]:
     """创建临时校准文件"""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         path = f.name
 
     yield path
@@ -131,15 +131,11 @@ def mock_mqtt_config() -> dict:
         "broker": "localhost",
         "port": 1883,
         "topic_prefix": "test/retrosight",
-        "client_id": "test_client"
+        "client_id": "test_client",
     }
 
 
 @pytest.fixture
 def mock_modbus_config() -> dict:
     """模拟 Modbus 配置"""
-    return {
-        "host": "0.0.0.0",
-        "port": 5020,  # 使用非标准端口避免冲突
-        "unit_id": 1
-    }
+    return {"host": "0.0.0.0", "port": 5020, "unit_id": 1}  # 使用非标准端口避免冲突

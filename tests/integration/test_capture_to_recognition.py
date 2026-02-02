@@ -8,10 +8,7 @@
 - 图像采集 → 开关识别
 """
 
-import pytest
-import numpy as np
 import cv2
-from unittest.mock import Mock, patch, MagicMock
 
 
 class TestCaptureToOCR:
@@ -26,13 +23,16 @@ class TestCaptureToOCR:
         result = ocr.recognize(sample_digital_image)
 
         assert result is not None
-        assert hasattr(result, 'text')
-        assert hasattr(result, 'confidence')
+        assert hasattr(result, "text")
+        assert hasattr(result, "confidence")
 
     def test_preprocessed_image_to_ocr(self, sample_digital_image):
         """测试预处理后的图像识别"""
         from retrosight.recognition.ocr import SimpleOCR
-        from retrosight.preprocessing.enhancement import ImageEnhancer, EnhancementConfig
+        from retrosight.preprocessing.enhancement import (
+            ImageEnhancer,
+            EnhancementConfig,
+        )
 
         # 图像增强
         enhancer = ImageEnhancer(EnhancementConfig())
@@ -66,22 +66,20 @@ class TestCaptureToPointer:
         from retrosight.recognition.pointer import PointerRecognizer, GaugeConfig
 
         config = GaugeConfig(
-            min_value=0,
-            max_value=100,
-            min_angle=225,
-            max_angle=-45,
-            unit="MPa"
+            min_value=0, max_value=100, min_angle=225, max_angle=-45, unit="MPa"
         )
 
         recognizer = PointerRecognizer(config)
         result = recognizer.recognize(sample_gauge_image)
 
         assert result is not None
-        assert hasattr(result, 'angle')
-        assert hasattr(result, 'value')
-        assert hasattr(result, 'confidence')
+        assert hasattr(result, "angle")
+        assert hasattr(result, "value")
+        assert hasattr(result, "confidence")
 
-    def test_calibrated_pointer_recognition(self, sample_gauge_image, temp_calibration_file):
+    def test_calibrated_pointer_recognition(
+        self, sample_gauge_image, temp_calibration_file
+    ):
         """测试校准后的指针识别"""
         from retrosight.recognition.pointer import PointerRecognizer, GaugeConfig
 
@@ -89,8 +87,7 @@ class TestCaptureToPointer:
 
         # 两点校准
         recognizer.calibrate_two_point(
-            angle1=45.0, value1=0.0,
-            angle2=315.0, value2=100.0
+            angle1=45.0, value1=0.0, angle2=315.0, value2=100.0
         )
 
         # 保存校准
@@ -116,13 +113,8 @@ class TestCaptureToPointer:
         transform = PerspectiveTransform()
 
         # 设置四点（轻微倾斜）
-        src_points = [
-            (10, 10),
-            (w - 10, 15),
-            (w - 15, h - 10),
-            (5, h - 15)
-        ]
-        transform.set_source_points(src_points, w, h)
+        src_points = [(10, 10), (w - 10, 15), (w - 15, h - 10), (5, h - 15)]
+        transform.set_source_points(src_points, (w, h))
         corrected = transform.apply(sample_gauge_image)
 
         # 指针识别
@@ -137,21 +129,23 @@ class TestCaptureToLight:
 
     def test_image_to_light_detection(self, sample_light_image_green):
         """测试图像到指示灯检测"""
-        from retrosight.recognition.light import LightRecognizer, LightConfig, LightColor
-
-        config = LightConfig(
-            region=(20, 20, 60, 60),
-            expected_colors=[LightColor.GREEN, LightColor.RED]
+        from retrosight.recognition.light import (
+            LightRecognizer,
+            LightConfig,
         )
+
+        config = LightConfig(region=(20, 20, 60, 60))
 
         recognizer = LightRecognizer(config)
         result = recognizer.detect(sample_light_image_green)
 
         assert result is not None
-        assert hasattr(result, 'color')
-        assert hasattr(result, 'state')
+        assert hasattr(result, "color")
+        assert hasattr(result, "state")
 
-    def test_andon_light_detection(self, sample_light_image_green, sample_light_image_red):
+    def test_andon_light_detection(
+        self, sample_light_image_green, sample_light_image_red
+    ):
         """测试 Andon 灯检测"""
         from retrosight.recognition.light import detect_andon
 
@@ -183,7 +177,11 @@ class TestCaptureToSwitch:
 
     def test_image_to_switch_detection(self, sample_switch_on_image):
         """测试图像到开关检测"""
-        from retrosight.recognition.switch import SwitchRecognizer, SwitchConfig, SwitchType
+        from retrosight.recognition.switch import (
+            SwitchRecognizer,
+            SwitchConfig,
+            SwitchType,
+        )
 
         config = SwitchConfig(switch_type=SwitchType.TOGGLE)
         recognizer = SwitchRecognizer(config)
@@ -191,11 +189,17 @@ class TestCaptureToSwitch:
         result = recognizer.recognize(sample_switch_on_image)
 
         assert result is not None
-        assert hasattr(result, 'state')
+        assert hasattr(result, "state")
 
-    def test_switch_state_change_detection(self, sample_switch_on_image, sample_switch_off_image):
+    def test_switch_state_change_detection(
+        self, sample_switch_on_image, sample_switch_off_image
+    ):
         """测试开关状态变化检测"""
-        from retrosight.recognition.switch import SwitchRecognizer, SwitchConfig, SwitchType
+        from retrosight.recognition.switch import (
+            SwitchRecognizer,
+            SwitchConfig,
+            SwitchType,
+        )
 
         config = SwitchConfig(switch_type=SwitchType.TOGGLE)
         recognizer = SwitchRecognizer(config)
@@ -212,7 +216,10 @@ class TestPreprocessingPipeline:
 
     def test_full_preprocessing_pipeline(self, sample_digital_image):
         """测试完整预处理流水线"""
-        from retrosight.preprocessing.enhancement import ImageEnhancer, EnhancementConfig
+        from retrosight.preprocessing.enhancement import (
+            ImageEnhancer,
+            EnhancementConfig,
+        )
         from retrosight.preprocessing.filter import create_default_filter
 
         # 图像增强

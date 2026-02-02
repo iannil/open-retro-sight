@@ -7,11 +7,7 @@
 - 多识别器 → 多协议输出
 """
 
-import pytest
-import numpy as np
 import json
-from unittest.mock import Mock, patch, MagicMock, AsyncMock
-from dataclasses import dataclass
 
 
 class TestOCRToMQTT:
@@ -20,7 +16,6 @@ class TestOCRToMQTT:
     def test_ocr_result_to_mqtt_message(self, sample_digital_image):
         """测试 OCR 结果转 MQTT 消息"""
         from retrosight.recognition.ocr import SimpleOCR
-        from retrosight.output.mqtt import MQTTPublisher, MQTTConfig
 
         # OCR 识别
         ocr = SimpleOCR()
@@ -30,7 +25,7 @@ class TestOCRToMQTT:
         message = {
             "text": result.text,
             "confidence": result.confidence,
-            "timestamp": "2024-01-01T00:00:00Z"
+            "timestamp": "2024-01-01T00:00:00Z",
         }
 
         assert "text" in message
@@ -47,10 +42,7 @@ class TestOCRToMQTT:
         results = []
         for _ in range(5):
             result = ocr.recognize(sample_digital_image)
-            results.append({
-                "text": result.text,
-                "confidence": result.confidence
-            })
+            results.append({"text": result.text, "confidence": result.confidence})
 
         assert len(results) == 5
 
@@ -89,11 +81,7 @@ class TestPointerToModbus:
         from retrosight.recognition.pointer import PointerRecognizer, GaugeConfig
 
         config = GaugeConfig(
-            min_value=0,
-            max_value=100,
-            min_angle=225,
-            max_angle=-45,
-            unit="MPa"
+            min_value=0, max_value=100, min_angle=225, max_angle=-45, unit="MPa"
         )
 
         recognizer = PointerRecognizer(config)
@@ -123,7 +111,9 @@ class TestPointerToModbus:
 
         assert isinstance(should_output, bool)
 
-    def test_calibrated_pointer_to_modbus(self, sample_gauge_image, temp_calibration_file):
+    def test_calibrated_pointer_to_modbus(
+        self, sample_gauge_image, temp_calibration_file
+    ):
         """测试校准后的指针识别输出"""
         from retrosight.recognition.pointer import PointerRecognizer, GaugeConfig
 
@@ -131,8 +121,7 @@ class TestPointerToModbus:
 
         # 两点校准
         recognizer.calibrate_two_point(
-            angle1=0.0, value1=0.0,
-            angle2=180.0, value2=100.0
+            angle1=0.0, value1=0.0, angle2=180.0, value2=100.0
         )
 
         result = recognizer.recognize(sample_gauge_image)
@@ -142,7 +131,7 @@ class TestPointerToModbus:
             "angle": result.angle,
             "value": result.value,
             "confidence": result.confidence,
-            "calibrated": recognizer.calibration is not None
+            "calibrated": recognizer.calibration is not None,
         }
 
         assert output["calibrated"] is True
@@ -168,7 +157,7 @@ class TestMultiRecognizerOutput:
         results = {
             "ocr": ocr.recognize(sample_digital_image),
             "pointer": pointer.recognize(sample_gauge_image),
-            "light": light.detect(sample_light_image_green)
+            "light": light.detect(sample_light_image_green),
         }
 
         assert results["ocr"] is not None
@@ -195,20 +184,28 @@ class TestMultiRecognizerOutput:
                 {
                     "type": "digital_display",
                     "value": ocr_result.text,
-                    "confidence": ocr_result.confidence
+                    "confidence": ocr_result.confidence,
                 },
                 {
                     "type": "gauge",
                     "value": pointer_result.value,
                     "unit": "MPa",
-                    "confidence": pointer_result.confidence
+                    "confidence": pointer_result.confidence,
                 },
                 {
                     "type": "indicator_light",
-                    "state": light_result.state.value if hasattr(light_result.state, 'value') else str(light_result.state),
-                    "color": light_result.color.value if hasattr(light_result.color, 'value') else str(light_result.color)
-                }
-            ]
+                    "state": (
+                        light_result.state.value
+                        if hasattr(light_result.state, "value")
+                        else str(light_result.state)
+                    ),
+                    "color": (
+                        light_result.color.value
+                        if hasattr(light_result.color, "value")
+                        else str(light_result.color)
+                    ),
+                },
+            ],
         }
 
         assert len(output["readings"]) == 3
@@ -224,11 +221,7 @@ class TestOutputProtocols:
         """测试 MQTT 配置验证"""
         from retrosight.output.mqtt import MQTTConfig
 
-        config = MQTTConfig(
-            host="localhost",
-            port=1883,
-            topic_prefix="test/retrosight"
-        )
+        config = MQTTConfig(host="localhost", port=1883, topic_prefix="test/retrosight")
 
         assert config.host == "localhost"
         assert config.port == 1883
@@ -237,10 +230,7 @@ class TestOutputProtocols:
         """测试 Modbus 配置验证"""
         from retrosight.output.modbus import ModbusConfig
 
-        config = ModbusConfig(
-            host="0.0.0.0",
-            port=502
-        )
+        config = ModbusConfig(host="0.0.0.0", port=502)
 
         assert config.host == "0.0.0.0"
         assert config.port == 502
@@ -252,13 +242,15 @@ class TestOutputProtocols:
         result = SimpleOCR().recognize(sample_digital_image)
 
         # JSON 格式消息
-        message = json.dumps({
-            "device_id": "test_device",
-            "reading_type": "ocr",
-            "value": result.text,
-            "confidence": result.confidence,
-            "timestamp": "2024-01-01T00:00:00Z"
-        })
+        message = json.dumps(
+            {
+                "device_id": "test_device",
+                "reading_type": "ocr",
+                "value": result.text,
+                "confidence": result.confidence,
+                "timestamp": "2024-01-01T00:00:00Z",
+            }
+        )
 
         parsed = json.loads(message)
         assert "device_id" in parsed
@@ -277,11 +269,9 @@ class TestOutputBuffering:
 
         # 添加消息
         for i in range(10):
-            message_queue.append({
-                "id": i,
-                "value": i * 10,
-                "timestamp": f"2024-01-01T00:00:{i:02d}Z"
-            })
+            message_queue.append(
+                {"id": i, "value": i * 10, "timestamp": f"2024-01-01T00:00:{i:02d}Z"}
+            )
 
         assert len(message_queue) == 10
 
@@ -299,19 +289,15 @@ class TestOutputBuffering:
         # 模拟断线期间的消息缓存
         for i in range(50):
             if len(buffer) < max_buffer_size:
-                buffer.append({
-                    "id": i,
-                    "value": i * 10
-                })
+                buffer.append({"id": i, "value": i * 10})
 
         assert len(buffer) == 50
 
         # 模拟重连后发送
         sent_count = 0
         while buffer:
-            message = buffer.pop(0)
+            buffer.pop(0)
             sent_count += 1
 
         assert sent_count == 50
         assert len(buffer) == 0
-

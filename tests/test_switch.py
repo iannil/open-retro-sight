@@ -4,7 +4,6 @@
 
 import pytest
 import numpy as np
-from unittest.mock import Mock, patch
 
 from retrosight.recognition.switch import (
     SwitchType,
@@ -59,7 +58,7 @@ class TestSwitchConfig:
             switch_type=SwitchType.ROTARY,
             region=(10, 20, 100, 100),
             num_positions=4,
-            position_labels=["OFF", "LOW", "MED", "HIGH"]
+            position_labels=["OFF", "LOW", "MED", "HIGH"],
         )
         assert config.switch_type == SwitchType.ROTARY
         assert config.region == (10, 20, 100, 100)
@@ -73,10 +72,7 @@ class TestSwitchResult:
     def test_creation(self):
         """测试创建"""
         result = SwitchResult(
-            state=SwitchState.ON,
-            position=1,
-            position_label="ON",
-            confidence=0.95
+            state=SwitchState.ON, position=1, position_label="ON", confidence=0.95
         )
         assert result.state == SwitchState.ON
         assert result.position == 1
@@ -107,7 +103,7 @@ class TestSwitchRecognizer:
         config = SwitchConfig(
             switch_type=SwitchType.ROTARY,
             num_positions=4,
-            position_labels=["OFF", "LOW", "MED", "HIGH"]
+            position_labels=["OFF", "LOW", "MED", "HIGH"],
         )
         return SwitchRecognizer(config)
 
@@ -214,7 +210,7 @@ class TestSwitchRecognizer:
             position_label="LOW",
             confidence=0.9,
             angle=90,
-            center=(50, 50)
+            center=(50, 50),
         )
         output = rotary_recognizer.visualize(uniform_image, result)
         assert output.shape == uniform_image.shape
@@ -321,8 +317,6 @@ class TestConvenienceFunctions:
     def test_detect_rotary_with_labels(self, test_image):
         """测试带标签的 detect_rotary"""
         result = detect_rotary(
-            test_image,
-            num_positions=3,
-            position_labels=["OFF", "AUTO", "ON"]
+            test_image, num_positions=3, position_labels=["OFF", "AUTO", "ON"]
         )
         assert isinstance(result, SwitchResult)

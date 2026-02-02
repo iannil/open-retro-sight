@@ -12,7 +12,6 @@ MQTT 数据发布模块
 """
 
 import json
-import time
 import threading
 import logging
 from typing import Optional, Dict, Any, List, Callable
@@ -27,29 +26,31 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MQTTConfig:
     """MQTT 配置"""
-    host: str = "localhost"           # Broker 地址
-    port: int = 1883                  # Broker 端口
-    username: Optional[str] = None    # 用户名
-    password: Optional[str] = None    # 密码
-    client_id: str = "retrosight"     # 客户端ID
-    keepalive: int = 60               # 心跳间隔（秒）
-    qos: int = 1                      # QoS 等级 (0, 1, 2)
-    retain: bool = False              # 是否保留消息
+
+    host: str = "localhost"  # Broker 地址
+    port: int = 1883  # Broker 端口
+    username: Optional[str] = None  # 用户名
+    password: Optional[str] = None  # 密码
+    client_id: str = "retrosight"  # 客户端ID
+    keepalive: int = 60  # 心跳间隔（秒）
+    qos: int = 1  # QoS 等级 (0, 1, 2)
+    retain: bool = False  # 是否保留消息
     topic_prefix: str = "retrosight"  # 主题前缀
-    reconnect_delay: float = 5.0      # 重连延迟（秒）
-    max_buffer_size: int = 1000       # 离线缓冲区大小
-    use_tls: bool = False             # 是否使用 TLS
-    ca_certs: Optional[str] = None    # CA 证书路径
+    reconnect_delay: float = 5.0  # 重连延迟（秒）
+    max_buffer_size: int = 1000  # 离线缓冲区大小
+    use_tls: bool = False  # 是否使用 TLS
+    ca_certs: Optional[str] = None  # CA 证书路径
 
 
 @dataclass
 class SensorData:
     """传感器数据"""
-    sensor_id: str                    # 传感器ID
-    value: float                      # 数值
-    unit: str = ""                    # 单位
-    confidence: float = 1.0           # 置信度
-    timestamp: Optional[str] = None   # 时间戳 (ISO 格式)
+
+    sensor_id: str  # 传感器ID
+    value: float  # 数值
+    unit: str = ""  # 单位
+    confidence: float = 1.0  # 置信度
+    timestamp: Optional[str] = None  # 时间戳 (ISO 格式)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
@@ -126,8 +127,7 @@ class MQTTPublisher:
 
             # 创建客户端
             self._client = mqtt.Client(
-                client_id=self.config.client_id,
-                protocol=mqtt.MQTTv311
+                client_id=self.config.client_id, protocol=mqtt.MQTTv311
             )
 
             # 设置回调
@@ -137,10 +137,7 @@ class MQTTPublisher:
 
             # 设置认证
             if self.config.username:
-                self._client.username_pw_set(
-                    self.config.username,
-                    self.config.password
-                )
+                self._client.username_pw_set(self.config.username, self.config.password)
 
             # 设置 TLS
             if self.config.use_tls:
@@ -148,9 +145,7 @@ class MQTTPublisher:
 
             # 连接
             self._client.connect_async(
-                self.config.host,
-                self.config.port,
-                self.config.keepalive
+                self.config.host, self.config.port, self.config.keepalive
             )
 
             # 启动网络循环
@@ -159,12 +154,13 @@ class MQTTPublisher:
 
             # 启动发布线程
             self._publish_thread = threading.Thread(
-                target=self._publish_loop,
-                daemon=True
+                target=self._publish_loop, daemon=True
             )
             self._publish_thread.start()
 
-            logger.info(f"MQTT 客户端已启动，连接到 {self.config.host}:{self.config.port}")
+            logger.info(
+                f"MQTT 客户端已启动，连接到 {self.config.host}:{self.config.port}"
+            )
             return True
 
         except ImportError:
@@ -211,7 +207,7 @@ class MQTTPublisher:
         value: float,
         unit: str = "",
         confidence: float = 1.0,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """
         便捷方法：发布单个数值
@@ -231,7 +227,7 @@ class MQTTPublisher:
             value=value,
             unit=unit,
             confidence=confidence,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
         return self.publish(data)
 
@@ -297,7 +293,7 @@ class MQTTPublisher:
                         message["topic"],
                         message["payload"],
                         qos=self.config.qos,
-                        retain=self.config.retain
+                        retain=self.config.retain,
                     )
 
             except queue.Empty:
@@ -436,26 +432,20 @@ class MQTTSubscriber:
             import paho.mqtt.client as mqtt
 
             self._client = mqtt.Client(
-                client_id=f"{self.config.client_id}_sub",
-                protocol=mqtt.MQTTv311
+                client_id=f"{self.config.client_id}_sub", protocol=mqtt.MQTTv311
             )
 
             self._client.on_connect = self._on_connect
             self._client.on_message = self._on_message
 
             if self.config.username:
-                self._client.username_pw_set(
-                    self.config.username,
-                    self.config.password
-                )
+                self._client.username_pw_set(self.config.username, self.config.password)
 
             if self.config.use_tls:
                 self._client.tls_set(ca_certs=self.config.ca_certs)
 
             self._client.connect_async(
-                self.config.host,
-                self.config.port,
-                self.config.keepalive
+                self.config.host, self.config.port, self.config.keepalive
             )
 
             self._client.loop_start()
@@ -514,9 +504,7 @@ class MQTTSubscriber:
 
 
 def create_publisher(
-    host: str = "localhost",
-    port: int = 1883,
-    topic_prefix: str = "retrosight"
+    host: str = "localhost", port: int = 1883, topic_prefix: str = "retrosight"
 ) -> MQTTPublisher:
     """
     便捷函数：创建 MQTT 发布器
@@ -529,9 +517,5 @@ def create_publisher(
     Returns:
         配置好的 MQTT 发布器
     """
-    config = MQTTConfig(
-        host=host,
-        port=port,
-        topic_prefix=topic_prefix
-    )
+    config = MQTTConfig(host=host, port=port, topic_prefix=topic_prefix)
     return MQTTPublisher(config)

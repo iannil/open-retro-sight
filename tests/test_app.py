@@ -8,11 +8,10 @@ Web 界面模块测试
 - 滤波器创建
 """
 
-import pytest
 import json
 import os
 import tempfile
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 import numpy as np
 
 from retrosight.ui.app import (
@@ -58,7 +57,7 @@ class TestAppConfig:
             camera_source=1,
             camera_width=1280,
             mqtt_enabled=True,
-            mqtt_host="broker.example.com"
+            mqtt_host="broker.example.com",
         )
 
         assert config.camera_source == 1
@@ -77,10 +76,10 @@ class TestConfigPersistence:
             camera_width=800,
             mqtt_enabled=True,
             mqtt_host="test.broker.com",
-            mqtt_port=8883
+            mqtt_port=8883,
         )
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             path = f.name
 
         try:
@@ -90,10 +89,10 @@ class TestConfigPersistence:
             assert os.path.exists(path)
 
             # 验证文件内容
-            with open(path, 'r') as f:
+            with open(path, "r") as f:
                 data = json.load(f)
-                assert data['camera_source'] == 2
-                assert data['mqtt_host'] == "test.broker.com"
+                assert data["camera_source"] == 2
+                assert data["mqtt_host"] == "test.broker.com"
 
             # 加载
             loaded = load_config(path)
@@ -124,7 +123,7 @@ class TestConfigPersistence:
 class TestMQTTConnectionTest:
     """MQTT 连接测试"""
 
-    @patch('retrosight.ui.app.mqtt')
+    @patch("retrosight.ui.app.mqtt")
     def test_successful_connection(self, mock_mqtt_module):
         """测试成功连接"""
         # 模拟 MQTT 客户端
@@ -139,17 +138,14 @@ class TestMQTTConnectionTest:
 
         mock_client.connect.side_effect = connect_side_effect
 
-        config = AppConfig(
-            mqtt_host="localhost",
-            mqtt_port=1883
-        )
+        config = AppConfig(mqtt_host="localhost", mqtt_port=1883)
 
         success, message = test_mqtt_connection(config)
 
         assert success is True
         assert "成功" in message
 
-    @patch('retrosight.ui.app.mqtt')
+    @patch("retrosight.ui.app.mqtt")
     def test_connection_auth_error(self, mock_mqtt_module):
         """测试认证错误"""
         mock_client = MagicMock()
@@ -162,9 +158,7 @@ class TestMQTTConnectionTest:
         mock_client.connect.side_effect = connect_side_effect
 
         config = AppConfig(
-            mqtt_host="localhost",
-            mqtt_username="user",
-            mqtt_password="wrong"
+            mqtt_host="localhost", mqtt_username="user", mqtt_password="wrong"
         )
 
         success, message = test_mqtt_connection(config)
@@ -174,10 +168,7 @@ class TestMQTTConnectionTest:
 
     def test_connection_refused(self):
         """测试连接被拒绝"""
-        config = AppConfig(
-            mqtt_host="localhost",
-            mqtt_port=9999  # 不存在的端口
-        )
+        config = AppConfig(mqtt_host="localhost", mqtt_port=9999)  # 不存在的端口
 
         success, message = test_mqtt_connection(config)
 
@@ -190,7 +181,7 @@ class TestMQTTConnectionTest:
             mqtt_host="localhost",
             mqtt_port=1883,
             mqtt_username="testuser",
-            mqtt_password="testpass"
+            mqtt_password="testpass",
         )
 
         # 不实际连接，只测试函数不会抛出异常
@@ -204,10 +195,7 @@ class TestFilterCreation:
 
     def test_create_kalman_filter(self):
         """测试创建卡尔曼滤波器"""
-        config = AppConfig(
-            filter_enabled=True,
-            filter_type="kalman"
-        )
+        config = AppConfig(filter_enabled=True, filter_type="kalman")
 
         filter_obj = create_filter(config)
 
@@ -219,9 +207,7 @@ class TestFilterCreation:
     def test_create_moving_average_filter(self):
         """测试创建滑动平均滤波器"""
         config = AppConfig(
-            filter_enabled=True,
-            filter_type="moving_average",
-            filter_window_size=5
+            filter_enabled=True, filter_type="moving_average", filter_window_size=5
         )
 
         filter_obj = create_filter(config)
@@ -235,9 +221,7 @@ class TestFilterCreation:
     def test_create_exponential_filter(self):
         """测试创建指数平滑滤波器"""
         config = AppConfig(
-            filter_enabled=True,
-            filter_type="exponential",
-            filter_alpha=0.3
+            filter_enabled=True, filter_type="exponential", filter_alpha=0.3
         )
 
         filter_obj = create_filter(config)
@@ -276,22 +260,15 @@ class TestCalibrationIntegration:
         from retrosight.recognition.pointer import (
             PointerRecognizer,
             GaugeConfig,
-            CalibrationData,
-            CalibrationPoint
         )
 
         # 创建识别器并进行校准
-        config = GaugeConfig(
-            min_value=0,
-            max_value=100,
-            unit="MPa"
-        )
+        config = GaugeConfig(min_value=0, max_value=100, unit="MPa")
         recognizer = PointerRecognizer(config)
 
         # 两点校准
         recognizer.calibrate_two_point(
-            angle1=45.0, value1=0.0,
-            angle2=315.0, value2=100.0
+            angle1=45.0, value1=0.0, angle2=315.0, value2=100.0
         )
 
         assert recognizer.calibration is not None
@@ -299,7 +276,7 @@ class TestCalibrationIntegration:
         assert len(recognizer.calibration.points) == 2
 
         # 保存校准数据
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             path = f.name
 
         try:
@@ -326,9 +303,12 @@ class TestCalibrationIntegration:
 
         # 三点校准（非线性）
         recognizer.calibrate_three_point(
-            angle1=45.0, value1=0.0,
-            angle2=180.0, value2=40.0,  # 非线性中间点
-            angle3=315.0, value3=100.0
+            angle1=45.0,
+            value1=0.0,
+            angle2=180.0,
+            value2=40.0,  # 非线性中间点
+            angle3=315.0,
+            value3=100.0,
         )
 
         assert recognizer.calibration is not None

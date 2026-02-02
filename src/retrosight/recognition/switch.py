@@ -12,7 +12,7 @@
 
 import cv2
 import numpy as np
-from typing import Optional, List, Tuple, Dict, Any
+from typing import Optional, List, Tuple, Dict
 from dataclasses import dataclass, field
 from enum import Enum
 import logging
@@ -22,24 +22,27 @@ logger = logging.getLogger(__name__)
 
 class SwitchType(Enum):
     """开关类型"""
-    TOGGLE = "toggle"       # 拨动开关
-    ROTARY = "rotary"       # 旋转开关/旋钮
+
+    TOGGLE = "toggle"  # 拨动开关
+    ROTARY = "rotary"  # 旋转开关/旋钮
     PUSH_BUTTON = "button"  # 按钮
-    SLIDER = "slider"       # 滑动开关
-    SELECTOR = "selector"   # 选择器开关
+    SLIDER = "slider"  # 滑动开关
+    SELECTOR = "selector"  # 选择器开关
 
 
 class SwitchState(Enum):
     """开关状态"""
+
     ON = "on"
     OFF = "off"
-    MIDDLE = "middle"     # 中间位置（三档开关）
+    MIDDLE = "middle"  # 中间位置（三档开关）
     UNKNOWN = "unknown"
 
 
 @dataclass
 class SwitchConfig:
     """开关配置"""
+
     # 开关类型
     switch_type: SwitchType = SwitchType.TOGGLE
     # 检测区域 (x, y, width, height)
@@ -66,11 +69,12 @@ class SwitchConfig:
 @dataclass
 class SwitchResult:
     """开关识别结果"""
-    state: SwitchState              # 状态
-    position: int = 0               # 档位索引 (0-based)
-    position_label: str = ""        # 档位标签
-    confidence: float = 0.0         # 置信度
-    angle: float = 0.0              # 角度（旋钮）
+
+    state: SwitchState  # 状态
+    position: int = 0  # 档位索引 (0-based)
+    position_label: str = ""  # 档位标签
+    confidence: float = 0.0  # 置信度
+    angle: float = 0.0  # 角度（旋钮）
     center: Optional[Tuple[int, int]] = None  # 开关中心位置
 
 
@@ -113,9 +117,13 @@ class SwitchRecognizer:
     def _load_templates(self):
         """加载参考模板图像"""
         if self.config.on_reference:
-            self._on_template = cv2.imread(self.config.on_reference, cv2.IMREAD_GRAYSCALE)
+            self._on_template = cv2.imread(
+                self.config.on_reference, cv2.IMREAD_GRAYSCALE
+            )
         if self.config.off_reference:
-            self._off_template = cv2.imread(self.config.off_reference, cv2.IMREAD_GRAYSCALE)
+            self._off_template = cv2.imread(
+                self.config.off_reference, cv2.IMREAD_GRAYSCALE
+            )
 
     def recognize(self, image: np.ndarray) -> SwitchResult:
         """
@@ -148,7 +156,7 @@ class SwitchRecognizer:
         """提取感兴趣区域"""
         if self.config.region:
             x, y, w, h = self.config.region
-            return image[y:y+h, x:x+w]
+            return image[y : y + h, x : x + w]
         return image
 
     def _recognize_toggle(self, image: np.ndarray) -> SwitchResult:
@@ -188,19 +196,18 @@ class SwitchRecognizer:
                 state=SwitchState.ON,
                 position=1,
                 position_label="ON",
-                confidence=float(on_score)
+                confidence=float(on_score),
             )
         elif off_score > self.config.match_threshold:
             return SwitchResult(
                 state=SwitchState.OFF,
                 position=0,
                 position_label="OFF",
-                confidence=float(off_score)
+                confidence=float(off_score),
             )
         else:
             return SwitchResult(
-                state=SwitchState.UNKNOWN,
-                confidence=max(on_score, off_score)
+                state=SwitchState.UNKNOWN, confidence=max(on_score, off_score)
             )
 
     def _detect_by_color(self, image: np.ndarray) -> SwitchResult:
@@ -220,14 +227,14 @@ class SwitchRecognizer:
                 state=SwitchState.ON,
                 position=1,
                 position_label="ON",
-                confidence=min(1.0, ratio * 2)
+                confidence=min(1.0, ratio * 2),
             )
         else:
             return SwitchResult(
                 state=SwitchState.OFF,
                 position=0,
                 position_label="OFF",
-                confidence=min(1.0, (1 - ratio) * 2)
+                confidence=min(1.0, (1 - ratio) * 2),
             )
 
     def _detect_toggle_position(self, gray: np.ndarray) -> SwitchResult:
@@ -237,8 +244,8 @@ class SwitchRecognizer:
         假设开关柄在 ON 时偏上，OFF 时偏下
         """
         h, w = gray.shape
-        top_half = gray[:h//2, :]
-        bottom_half = gray[h//2:, :]
+        top_half = gray[: h // 2, :]
+        bottom_half = gray[h // 2 :, :]
 
         top_mean = np.mean(top_half)
         bottom_mean = np.mean(bottom_half)
@@ -257,20 +264,17 @@ class SwitchRecognizer:
                 state=SwitchState.ON,
                 position=1,
                 position_label="ON",
-                confidence=float(confidence)
+                confidence=float(confidence),
             )
         elif diff < -10:  # 下半部分更亮 -> OFF
             return SwitchResult(
                 state=SwitchState.OFF,
                 position=0,
                 position_label="OFF",
-                confidence=float(confidence)
+                confidence=float(confidence),
             )
         else:
-            return SwitchResult(
-                state=SwitchState.UNKNOWN,
-                confidence=float(confidence)
-            )
+            return SwitchResult(state=SwitchState.UNKNOWN, confidence=float(confidence))
 
     def _recognize_rotary(self, image: np.ndarray) -> SwitchResult:
         """
@@ -290,7 +294,7 @@ class SwitchRecognizer:
             theta=np.pi / 180,
             threshold=30,
             minLineLength=20,
-            maxLineGap=10
+            maxLineGap=10,
         )
 
         if lines is None or len(lines) == 0:
@@ -306,7 +310,7 @@ class SwitchRecognizer:
 
         for line in lines:
             x1, y1, x2, y2 = line[0]
-            length = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+            length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
             if length > max_length:
                 max_length = length
                 best_line = (x1, y1, x2, y2)
@@ -318,8 +322,8 @@ class SwitchRecognizer:
 
         # 计算指针角度（相对于中心）
         # 选择离中心较远的端点
-        dist1 = np.sqrt((x1 - center[0])**2 + (y1 - center[1])**2)
-        dist2 = np.sqrt((x2 - center[0])**2 + (y2 - center[1])**2)
+        dist1 = np.sqrt((x1 - center[0]) ** 2 + (y1 - center[1]) ** 2)
+        dist2 = np.sqrt((x2 - center[0]) ** 2 + (y2 - center[1]) ** 2)
 
         if dist1 > dist2:
             pointer_end = (x1, y1)
@@ -342,7 +346,7 @@ class SwitchRecognizer:
             position_label=label,
             confidence=confidence,
             angle=angle,
-            center=center
+            center=center,
         )
 
     def _angle_to_position(self, angle: float) -> Tuple[int, str, float]:
@@ -361,7 +365,7 @@ class SwitchRecognizer:
             angles = [i * 360 / n for i in range(n)]
 
         # 找到最近的档位
-        min_diff = float('inf')
+        min_diff = float("inf")
         best_pos = 0
 
         for i, pos_angle in enumerate(angles):
@@ -400,11 +404,13 @@ class SwitchRecognizer:
 
         # 计算中心区域亮度
         h, w = gray.shape
-        center_region = gray[h//4:3*h//4, w//4:3*w//4]
+        center_region = gray[h // 4 : 3 * h // 4, w // 4 : 3 * w // 4]
         center_brightness = np.mean(center_region)
 
         # 计算边缘区域亮度
-        edge_brightness = (np.sum(gray) - np.sum(center_region)) / (h*w - center_region.size)
+        edge_brightness = (np.sum(gray) - np.sum(center_region)) / (
+            h * w - center_region.size
+        )
 
         # 按下时中心通常更暗，边缘更亮（反光效果）
         brightness_diff = edge_brightness - center_brightness
@@ -414,14 +420,14 @@ class SwitchRecognizer:
                 state=SwitchState.ON,  # 按下
                 position=1,
                 position_label="PRESSED",
-                confidence=min(1.0, brightness_diff / 30)
+                confidence=min(1.0, brightness_diff / 30),
             )
         else:
             return SwitchResult(
                 state=SwitchState.OFF,  # 弹起
                 position=0,
                 position_label="RELEASED",
-                confidence=min(1.0, 1 - brightness_diff / 30)
+                confidence=min(1.0, 1 - brightness_diff / 30),
             )
 
     def _recognize_slider(self, image: np.ndarray) -> SwitchResult:
@@ -467,7 +473,7 @@ class SwitchRecognizer:
                 position=position,
                 position_label=label,
                 confidence=float(confidence),
-                center=(slider_pos, h // 2)
+                center=(slider_pos, h // 2),
             )
 
         return SwitchResult(state=SwitchState.UNKNOWN)
@@ -481,11 +487,7 @@ class SwitchRecognizer:
         # 复用旋钮识别逻辑
         return self._recognize_rotary(image)
 
-    def set_templates(
-        self,
-        on_image: np.ndarray,
-        off_image: np.ndarray
-    ):
+    def set_templates(self, on_image: np.ndarray, off_image: np.ndarray):
         """
         设置参考模板
 
@@ -496,11 +498,7 @@ class SwitchRecognizer:
         self._on_template = cv2.cvtColor(on_image, cv2.COLOR_BGR2GRAY)
         self._off_template = cv2.cvtColor(off_image, cv2.COLOR_BGR2GRAY)
 
-    def visualize(
-        self,
-        image: np.ndarray,
-        result: SwitchResult
-    ) -> np.ndarray:
+    def visualize(self, image: np.ndarray, result: SwitchResult) -> np.ndarray:
         """
         可视化识别结果
 
@@ -517,11 +515,7 @@ class SwitchRecognizer:
         text = f"{result.position_label} ({result.confidence:.2f})"
         color = (0, 255, 0) if result.state == SwitchState.ON else (0, 0, 255)
 
-        cv2.putText(
-            output, text,
-            (10, 30),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2
-        )
+        cv2.putText(output, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
 
         # 绘制中心点和指针（旋钮）
         if result.center and self.config.switch_type == SwitchType.ROTARY:
@@ -626,7 +620,7 @@ class MultiSwitchMonitor:
 def detect_switch(
     image: np.ndarray,
     region: Optional[Tuple[int, int, int, int]] = None,
-    switch_type: SwitchType = SwitchType.TOGGLE
+    switch_type: SwitchType = SwitchType.TOGGLE,
 ) -> SwitchResult:
     """
     便捷函数：检测开关状态
@@ -648,7 +642,7 @@ def detect_rotary(
     image: np.ndarray,
     num_positions: int = 4,
     position_labels: Optional[List[str]] = None,
-    region: Optional[Tuple[int, int, int, int]] = None
+    region: Optional[Tuple[int, int, int, int]] = None,
 ) -> SwitchResult:
     """
     便捷函数：检测旋钮档位
@@ -666,7 +660,7 @@ def detect_rotary(
         switch_type=SwitchType.ROTARY,
         region=region,
         num_positions=num_positions,
-        position_labels=position_labels or []
+        position_labels=position_labels or [],
     )
     recognizer = SwitchRecognizer(config)
     return recognizer.recognize(image)

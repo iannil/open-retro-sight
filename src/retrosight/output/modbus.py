@@ -12,8 +12,8 @@ Modbus TCP 输出模块
 
 import threading
 import logging
-from typing import Optional, Dict, List, Any, Union
-from dataclasses import dataclass, field
+from typing import Optional, Dict, List, Any
+from dataclasses import dataclass
 from enum import Enum
 import struct
 
@@ -22,34 +22,37 @@ logger = logging.getLogger(__name__)
 
 class DataType(Enum):
     """数据类型"""
-    INT16 = "int16"           # 16位有符号整数 (1个寄存器)
-    UINT16 = "uint16"         # 16位无符号整数 (1个寄存器)
-    INT32 = "int32"           # 32位有符号整数 (2个寄存器)
-    UINT32 = "uint32"         # 32位无符号整数 (2个寄存器)
-    FLOAT32 = "float32"       # 32位浮点数 (2个寄存器)
-    FLOAT64 = "float64"       # 64位浮点数 (4个寄存器)
+
+    INT16 = "int16"  # 16位有符号整数 (1个寄存器)
+    UINT16 = "uint16"  # 16位无符号整数 (1个寄存器)
+    INT32 = "int32"  # 32位有符号整数 (2个寄存器)
+    UINT32 = "uint32"  # 32位无符号整数 (2个寄存器)
+    FLOAT32 = "float32"  # 32位浮点数 (2个寄存器)
+    FLOAT64 = "float64"  # 64位浮点数 (4个寄存器)
 
 
 @dataclass
 class ModbusConfig:
     """Modbus 配置"""
-    host: str = "0.0.0.0"         # 监听地址
-    port: int = 502               # 端口
-    unit_id: int = 1              # 从站 ID
-    max_registers: int = 1000     # 最大寄存器数量
-    byte_order: str = "big"       # 字节序 ("big" 或 "little")
-    word_order: str = "big"       # 字序 ("big" 或 "little")
+
+    host: str = "0.0.0.0"  # 监听地址
+    port: int = 502  # 端口
+    unit_id: int = 1  # 从站 ID
+    max_registers: int = 1000  # 最大寄存器数量
+    byte_order: str = "big"  # 字节序 ("big" 或 "little")
+    word_order: str = "big"  # 字序 ("big" 或 "little")
 
 
 @dataclass
 class RegisterMapping:
     """寄存器映射"""
-    sensor_id: str                # 传感器 ID
-    address: int                  # 起始地址
-    data_type: DataType           # 数据类型
-    scale: float = 1.0            # 缩放系数
-    offset: float = 0.0           # 偏移量
-    description: str = ""         # 描述
+
+    sensor_id: str  # 传感器 ID
+    address: int  # 起始地址
+    data_type: DataType  # 数据类型
+    scale: float = 1.0  # 缩放系数
+    offset: float = 0.0  # 偏移量
+    description: str = ""  # 描述
 
 
 class ModbusServer:
@@ -110,8 +113,7 @@ class ModbusServer:
         for existing in self._mappings.values():
             existing_size = self._get_register_size(existing.data_type)
             if self._address_overlaps(
-                mapping.address, size,
-                existing.address, existing_size
+                mapping.address, size, existing.address, existing_size
             ):
                 raise ValueError(
                     f"地址冲突: {mapping.sensor_id} 与 {existing.sensor_id}"
@@ -129,7 +131,7 @@ class ModbusServer:
         self,
         sensor_ids: List[str],
         data_type: DataType = DataType.FLOAT32,
-        start_address: int = 0
+        start_address: int = 0,
     ):
         """
         自动分配寄存器地址
@@ -144,9 +146,7 @@ class ModbusServer:
 
         for sensor_id in sensor_ids:
             mapping = RegisterMapping(
-                sensor_id=sensor_id,
-                address=current_address,
-                data_type=data_type
+                sensor_id=sensor_id, address=current_address, data_type=data_type
             )
             self.add_mapping(mapping)
             current_address += size
@@ -208,7 +208,7 @@ class ModbusServer:
         size = self._get_register_size(mapping.data_type)
 
         with self._lock:
-            registers = self._registers[mapping.address:mapping.address + size]
+            registers = self._registers[mapping.address : mapping.address + size]
 
         value = self._registers_to_value(registers, mapping.data_type)
 
@@ -226,11 +226,10 @@ class ModbusServer:
             return True
 
         try:
-            from pymodbus.server import StartTcpServer
             from pymodbus.datastore import (
                 ModbusSequentialDataBlock,
                 ModbusSlaveContext,
-                ModbusServerContext
+                ModbusServerContext,
             )
 
             # 创建数据存储
@@ -238,23 +237,21 @@ class ModbusServer:
                 di=ModbusSequentialDataBlock(0, [0] * self.config.max_registers),
                 co=ModbusSequentialDataBlock(0, [0] * self.config.max_registers),
                 hr=ModbusSequentialDataBlock(0, self._registers.copy()),
-                ir=ModbusSequentialDataBlock(0, self._registers.copy())
+                ir=ModbusSequentialDataBlock(0, self._registers.copy()),
             )
 
             self._context = ModbusServerContext(
-                slaves={self.config.unit_id: store},
-                single=False
+                slaves={self.config.unit_id: store}, single=False
             )
 
             # 在独立线程中启动服务器
             self._running = True
-            self._thread = threading.Thread(
-                target=self._server_thread,
-                daemon=True
-            )
+            self._thread = threading.Thread(target=self._server_thread, daemon=True)
             self._thread.start()
 
-            logger.info(f"Modbus TCP 服务器已启动: {self.config.host}:{self.config.port}")
+            logger.info(
+                f"Modbus TCP 服务器已启动: {self.config.host}:{self.config.port}"
+            )
             return True
 
         except ImportError:
@@ -270,8 +267,7 @@ class ModbusServer:
             from pymodbus.server import StartTcpServer
 
             StartTcpServer(
-                context=self._context,
-                address=(self.config.host, self.config.port)
+                context=self._context, address=(self.config.host, self.config.port)
             )
         except Exception as e:
             logger.error(f"Modbus 服务器错误: {e}")
@@ -314,34 +310,34 @@ class ModbusServer:
 
         elif data_type == DataType.INT32:
             val = int(value)
-            packed = struct.pack('>i', val)
+            packed = struct.pack(">i", val)
             return [
-                struct.unpack('>H', packed[0:2])[0],
-                struct.unpack('>H', packed[2:4])[0]
+                struct.unpack(">H", packed[0:2])[0],
+                struct.unpack(">H", packed[2:4])[0],
             ]
 
         elif data_type == DataType.UINT32:
             val = int(value)
-            packed = struct.pack('>I', val)
+            packed = struct.pack(">I", val)
             return [
-                struct.unpack('>H', packed[0:2])[0],
-                struct.unpack('>H', packed[2:4])[0]
+                struct.unpack(">H", packed[0:2])[0],
+                struct.unpack(">H", packed[2:4])[0],
             ]
 
         elif data_type == DataType.FLOAT32:
-            packed = struct.pack('>f', value)
+            packed = struct.pack(">f", value)
             return [
-                struct.unpack('>H', packed[0:2])[0],
-                struct.unpack('>H', packed[2:4])[0]
+                struct.unpack(">H", packed[0:2])[0],
+                struct.unpack(">H", packed[2:4])[0],
             ]
 
         elif data_type == DataType.FLOAT64:
-            packed = struct.pack('>d', value)
+            packed = struct.pack(">d", value)
             return [
-                struct.unpack('>H', packed[0:2])[0],
-                struct.unpack('>H', packed[2:4])[0],
-                struct.unpack('>H', packed[4:6])[0],
-                struct.unpack('>H', packed[6:8])[0]
+                struct.unpack(">H", packed[0:2])[0],
+                struct.unpack(">H", packed[2:4])[0],
+                struct.unpack(">H", packed[4:6])[0],
+                struct.unpack(">H", packed[6:8])[0],
             ]
 
         return [0]
@@ -361,20 +357,20 @@ class ModbusServer:
             return float(registers[0])
 
         elif data_type == DataType.INT32:
-            packed = struct.pack('>HH', registers[0], registers[1])
-            return float(struct.unpack('>i', packed)[0])
+            packed = struct.pack(">HH", registers[0], registers[1])
+            return float(struct.unpack(">i", packed)[0])
 
         elif data_type == DataType.UINT32:
-            packed = struct.pack('>HH', registers[0], registers[1])
-            return float(struct.unpack('>I', packed)[0])
+            packed = struct.pack(">HH", registers[0], registers[1])
+            return float(struct.unpack(">I", packed)[0])
 
         elif data_type == DataType.FLOAT32:
-            packed = struct.pack('>HH', registers[0], registers[1])
-            return struct.unpack('>f', packed)[0]
+            packed = struct.pack(">HH", registers[0], registers[1])
+            return struct.unpack(">f", packed)[0]
 
         elif data_type == DataType.FLOAT64:
-            packed = struct.pack('>HHHH', *registers[:4])
-            return struct.unpack('>d', packed)[0]
+            packed = struct.pack(">HHHH", *registers[:4])
+            return struct.unpack(">d", packed)[0]
 
         return 0.0
 
@@ -386,15 +382,11 @@ class ModbusServer:
             DataType.INT32: 2,
             DataType.UINT32: 2,
             DataType.FLOAT32: 2,
-            DataType.FLOAT64: 4
+            DataType.FLOAT64: 4,
         }
         return sizes.get(data_type, 1)
 
-    def _address_overlaps(
-        self,
-        addr1: int, size1: int,
-        addr2: int, size2: int
-    ) -> bool:
+    def _address_overlaps(self, addr1: int, size1: int, addr2: int, size2: int) -> bool:
         """检查两个地址范围是否重叠"""
         return not (addr1 + size1 <= addr2 or addr2 + size2 <= addr1)
 
@@ -418,15 +410,17 @@ class ModbusServer:
         result = []
         for sensor_id, mapping in self._mappings.items():
             size = self._get_register_size(mapping.data_type)
-            result.append({
-                "sensor_id": sensor_id,
-                "address": mapping.address,
-                "size": size,
-                "data_type": mapping.data_type.value,
-                "scale": mapping.scale,
-                "offset": mapping.offset,
-                "description": mapping.description
-            })
+            result.append(
+                {
+                    "sensor_id": sensor_id,
+                    "address": mapping.address,
+                    "size": size,
+                    "data_type": mapping.data_type.value,
+                    "scale": mapping.scale,
+                    "offset": mapping.offset,
+                    "description": mapping.description,
+                }
+            )
         return sorted(result, key=lambda x: x["address"])
 
 
@@ -488,9 +482,7 @@ class ModbusClient:
         if not self._client:
             return None
 
-        result = self._client.read_holding_registers(
-            address, count, slave=self.unit_id
-        )
+        result = self._client.read_holding_registers(address, count, slave=self.unit_id)
 
         if result.isError():
             return None
@@ -503,24 +495,21 @@ class ModbusClient:
         if registers is None:
             return None
 
-        packed = struct.pack('>HH', registers[0], registers[1])
-        return struct.unpack('>f', packed)[0]
+        packed = struct.pack(">HH", registers[0], registers[1])
+        return struct.unpack(">f", packed)[0]
 
     def write_registers(self, address: int, values: List[int]) -> bool:
         """写入保持寄存器"""
         if not self._client:
             return False
 
-        result = self._client.write_registers(
-            address, values, slave=self.unit_id
-        )
+        result = self._client.write_registers(address, values, slave=self.unit_id)
 
         return not result.isError()
 
 
 def create_modbus_server(
-    port: int = 502,
-    mappings: Optional[List[Dict[str, Any]]] = None
+    port: int = 502, mappings: Optional[List[Dict[str, Any]]] = None
 ) -> ModbusServer:
     """
     便捷函数：创建 Modbus 服务器
@@ -543,7 +532,7 @@ def create_modbus_server(
                 data_type=DataType(m.get("data_type", "float32")),
                 scale=m.get("scale", 1.0),
                 offset=m.get("offset", 0.0),
-                description=m.get("description", "")
+                description=m.get("description", ""),
             )
             server.add_mapping(mapping)
 

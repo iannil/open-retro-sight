@@ -5,8 +5,7 @@
 import pytest
 import os
 import tempfile
-from unittest.mock import Mock, patch
-from datetime import datetime
+from unittest.mock import Mock
 
 from retrosight.output.buffer import (
     BufferConfig,
@@ -48,9 +47,7 @@ class TestBufferConfig:
     def test_custom_values(self):
         """测试自定义值"""
         config = BufferConfig(
-            storage_path="/tmp/test.db",
-            max_size_mb=50.0,
-            batch_size=50
+            storage_path="/tmp/test.db", max_size_mb=50.0, batch_size=50
         )
         assert config.storage_path == "/tmp/test.db"
         assert config.max_size_mb == 50.0
@@ -62,9 +59,7 @@ class TestBufferedMessage:
     def test_creation(self):
         """测试创建"""
         msg = BufferedMessage(
-            topic="test/topic",
-            payload='{"value": 1}',
-            priority=Priority.HIGH
+            topic="test/topic", payload='{"value": 1}', priority=Priority.HIGH
         )
         assert msg.topic == "test/topic"
         assert msg.priority == Priority.HIGH
@@ -110,10 +105,7 @@ class TestPersistentBuffer:
         config = BufferConfig(storage_path=temp_db)
 
         with PersistentBuffer(config) as buffer:
-            msg = BufferedMessage(
-                topic="test",
-                payload="data"
-            )
+            msg = BufferedMessage(topic="test", payload="data")
             msg_id = buffer.push(msg)
             assert msg_id > 0
 
@@ -152,15 +144,15 @@ class TestPersistentBuffer:
 
         with PersistentBuffer(config) as buffer:
             # 按优先级倒序添加
-            buffer.push(BufferedMessage(
-                topic="low", payload="d", priority=Priority.LOW
-            ))
-            buffer.push(BufferedMessage(
-                topic="high", payload="d", priority=Priority.HIGH
-            ))
-            buffer.push(BufferedMessage(
-                topic="normal", payload="d", priority=Priority.NORMAL
-            ))
+            buffer.push(
+                BufferedMessage(topic="low", payload="d", priority=Priority.LOW)
+            )
+            buffer.push(
+                BufferedMessage(topic="high", payload="d", priority=Priority.HIGH)
+            )
+            buffer.push(
+                BufferedMessage(topic="normal", payload="d", priority=Priority.NORMAL)
+            )
 
             # 弹出应该按优先级顺序
             first = buffer.pop()
@@ -244,12 +236,8 @@ class TestMemoryBuffer:
         """测试优先级排序"""
         buffer = MemoryBuffer()
 
-        buffer.push(BufferedMessage(
-            topic="low", payload="d", priority=Priority.LOW
-        ))
-        buffer.push(BufferedMessage(
-            topic="high", payload="d", priority=Priority.HIGH
-        ))
+        buffer.push(BufferedMessage(topic="low", payload="d", priority=Priority.LOW))
+        buffer.push(BufferedMessage(topic="high", payload="d", priority=Priority.HIGH))
 
         first = buffer.pop()
         assert first.topic == "high"

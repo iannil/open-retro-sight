@@ -20,22 +20,24 @@ import time
 
 class CameraType(Enum):
     """摄像头类型"""
-    USB = "usb"           # USB 摄像头
-    CSI = "csi"           # CSI 摄像头 (树莓派)
-    RTSP = "rtsp"         # RTSP 视频流
-    FILE = "file"         # 图片/视频文件
+
+    USB = "usb"  # USB 摄像头
+    CSI = "csi"  # CSI 摄像头 (树莓派)
+    RTSP = "rtsp"  # RTSP 视频流
+    FILE = "file"  # 图片/视频文件
 
 
 @dataclass
 class CameraConfig:
     """摄像头配置"""
-    source: Union[int, str] = 0          # 视频源 (设备ID或URL/路径)
-    width: int = 640                      # 分辨率宽度
-    height: int = 480                     # 分辨率高度
-    fps: int = 30                         # 帧率
+
+    source: Union[int, str] = 0  # 视频源 (设备ID或URL/路径)
+    width: int = 640  # 分辨率宽度
+    height: int = 480  # 分辨率高度
+    fps: int = 30  # 帧率
     camera_type: CameraType = CameraType.USB
-    auto_exposure: bool = True            # 自动曝光
-    buffer_size: int = 2                  # 帧缓冲区大小
+    auto_exposure: bool = True  # 自动曝光
+    buffer_size: int = 2  # 帧缓冲区大小
 
 
 class Camera:
